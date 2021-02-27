@@ -1,0 +1,22 @@
+//    CONFIGURATION FILE
+//    ==================
+//    This gets "baked in" to your binaries at compile time, so you only have to
+//    copy one file into prod for each component.
+{
+    // <YOURAPP>.apps.googleusercontent.com, where you set up your oauth thing
+    "google_site": "<YOURAPP>.apps.googleusercontent.com",
+    // Default port to run frontend service on
+    "frontend_port": 5489,
+    // Port to run RESTful print-only API on
+    "printservice_port": 5491,
+    // Host to access print API on
+    "printservice_host": "127.0.0.1",
+    // Time to wait after sending to printer before taking picture
+    "print_time": "10s",
+    // Length of time to let login tokens last (4320h is approx. 6 months)
+    "authtoken_lifetime": "4320h",
+    // Salt for secret generation when making login token
+    "authsecret": "<secret>",
+    // Mask for allowed logins via google (either whole email@wherever names or @domains)
+    "allowed_logins": ["jason.scheirer@gmail.com", "@easypost.com"]
+}
