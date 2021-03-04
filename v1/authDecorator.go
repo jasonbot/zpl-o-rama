@@ -5,18 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/mail"
 )
 
 // AuthLevelRequired marks if an auth is required or not
 type AuthLevelRequired int
+
 // AuthErrorFormat is how the error should go to the user
 type AuthErrorFormat int
 
 const (
 	// LoginOptional CAN be logged in
 	LoginOptional AuthLevelRequired = iota
-	// LoginMandatory
-	LoginMandatory MUST be logged in
+	// LoginMandatory MUST be logged in
+	LoginMandatory
 )
 
 const (
@@ -26,22 +28,26 @@ const (
 	ErrorFormatText
 )
 
+type authContextKey int
+
+const (
+	authKeyUserInfo authContextKey = iota
+)
 
 func renderError(w http.ResponseWriter, err error, returnFormat AuthErrorFormat) {
 	if returnFormat == ErrorFormatJSON {
 		w.WriteHeader(http.StatusForbidden)
-		if (returnFormat == ErrorFormatJSON) {
-		w.WriteHeader("content-type", "application.json")
+		if returnFormat == ErrorFormatJSON {
+			w.Header().Add("content-type", "application.json")
 
-		errorStruct := struct{
-Message string `json:"message"`
-		}{Message: err.Error()}
-		returnBytes, _ := json.Marshal(errorStruct)
+			returnBytes, _ := json.Marshal(struct {
+				Message string `json:"message"`
+			}{Message: err.Error()})
 
-		w.Write(returnBytes)
+			w.Write(returnBytes)
 
 		} else {
-			w.WriteHeader("content-type", "text/plain")
+			w.Header().Add("content-type", "text/plain")
 			w.Write([]byte(err.Error()))
 		}
 	}
@@ -58,11 +64,23 @@ func AuthDecorator(next http.Handler, level AuthLevelRequired, returnFormat Auth
 		}
 
 		if loginAddress == nil && level == LoginMandatory {
-			err = errors.New("A login is required")
+			renderError(w, errors.New("A login is required"), returnFormat)
+			return
 		}
 
 		// Decorate request with user's login state context
-		nextContext := context.WithValue(r.Context(), "login", loginAddress)
+		nextContext := context.WithValue(r.Context(), authKeyUserInfo, loginAddress)
 		next.ServeHTTP(w, r.WithContext(nextContext))
 	})
+}
+
+// GetUserLogin gets the (possibly nil) email address of the user
+func GetUserLogin(r *http.Request) *mail.Address {
+	val := r.Context().Value(authKeyUserInfo)
+
+	if val != nil {
+		return val.(*mail.Address)
+	}
+
+	return nil
 }
