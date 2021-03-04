@@ -123,9 +123,3 @@ func getLoginInfo(r *http.Request) (*mail.Address, error) {
 
 	return nil, err
 }
-
-func renderError(w http.ResponseWriter, err error, returnFormat AuthErrorFormat) {
-	if returnFormat == ErrorFormatJSON {
-		w.WriteHeader(http.StatusForbidden)
-	}
-}
