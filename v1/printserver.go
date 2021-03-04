@@ -2,7 +2,6 @@ package zplorama
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,10 +11,15 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"github.com/hashicorp/mdns"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
 )
+
+type errJSON struct {
+	Errmsg string `json:"error"`
+}
 
 func startJob(db *bolt.DB, jobID string) {
 	db.Update(func(tx *bolt.Tx) error {
@@ -42,7 +46,7 @@ func updateJob(db *bolt.DB, job *printJobStatus) {
 }
 
 func sendZPL(dial, zpl string) error {
-	conn, err := net.DialTimeout("tcp", dial, 5*time.Second)
+	conn, err := net.DialTimeout("tcp", dial, 1*time.Second)
 
 	if err != nil {
 		return err
@@ -54,14 +58,13 @@ func sendZPL(dial, zpl string) error {
 }
 
 func takePicture() ([]byte, error) {
-	out, err := exec.Command("raspistill", "-t", "0", "-f", "png", "-o", "-").Output()
+	out, err := exec.Command("raspistill", "-t", "1000", "-e", "png", "-o", "-").Output()
 
 	return out, err
 }
 
 func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress string) error {
 	for jobToDo := range jobCache {
-
 		startJob(db, jobToDo.Jobid)
 
 		status := printJobStatus{
@@ -89,6 +92,7 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 					td = 5 * time.Second
 					err = nil
 				}
+
 				time.Sleep(td)
 			}
 		}
@@ -114,54 +118,44 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 	return nil
 }
 
-func printJobWatcher(router *mux.Router, db *bolt.DB) func(http.ResponseWriter, *http.Request) {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		vars := mux.Vars(request)
-
-		db.View(func(tx *bolt.Tx) error {
+func getJob(database *bolt.DB) func(echo.Context) error {
+	return func(c echo.Context) error {
+		database.View(func(tx *bolt.Tx) error {
 			var err error
 
 			bucket := tx.Bucket([]byte(printjobTable))
-			statusBytes := bucket.Get([]byte(vars["id"]))
+			statusBytes := bucket.Get([]byte(c.Param("id")))
 
-			if len(statusBytes) == 0 {
-				writer.WriteHeader(http.StatusNotFound)
-				err = errors.New("Empty record")
+			if statusBytes == nil || len(statusBytes) == 0 {
+				return c.JSON(http.StatusNotFound, errJSON{Errmsg: "Job not found"})
 			}
 
-			if err == nil {
-				var jobStatus printJobStatus
-				err = json5.Unmarshal(statusBytes, &jobStatus)
-
-				if err != nil {
-					writer.WriteHeader(http.StatusInternalServerError)
-				}
-			}
-
-			writer.Header().Add("cache-control", "no-store")
-			writer.Header().Add("content-type", "application/json")
+			var jobStatus printJobStatus
+			err = json5.Unmarshal(statusBytes, &jobStatus)
 
 			if err != nil {
-				statusBytes, err = json5.Marshal(struct {
-					Errmsg string `json:"error"`
-				}{Errmsg: err.Error()})
+				return c.JSON(http.StatusBadRequest, errJSON{Errmsg: err.Error()})
 			}
 
-			writer.Write(statusBytes)
+			c.Response().Header().Add("Cache-Control", "no-store")
 
-			return err
+			if err != nil {
+				c.JSON(http.StatusBadRequest, errJSON{Errmsg: err.Error()})
+			}
+
+			return c.JSON(http.StatusOK, jobStatus)
 		})
+
+		return nil
 	}
 }
 
-func printJobRequestor(router *mux.Router, requestor chan *printJobRequest, db *bolt.DB) func(http.ResponseWriter, *http.Request) {
-	return func(writer http.ResponseWriter, httpRequest *http.Request) {
-		var printRequest printJobRequest
-		var val []byte
+func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Context) error {
+	return func(c echo.Context) error {
 		var err error
 
-		decoder := json5.NewDecoder(httpRequest.Body)
-		err = decoder.Decode(&printRequest)
+		printRequest := new(printJobRequest)
+		c.Bind(&printRequest)
 
 		printRequest.Jobid = uuid.NewString()
 
@@ -173,31 +167,26 @@ func printJobRequestor(router *mux.Router, requestor chan *printJobRequest, db *
 			Created:  time.Now().Format(time.RFC3339),
 			Updated:  time.Now().Format(time.RFC3339),
 			Author:   printRequest.Author,
-			Message:  "I'm new here",
+			Message:  "Job created",
 		}
 
-		if printRequest.Jobid == "" || printRequest.ZPL == "" {
-			err = errors.New("Empty params")
-		} else {
-			updateJob(db, &response)
-			requestor <- &printRequest
+		updateJob(database, &response)
 
-			val, err = json5.Marshal(&response)
+		select {
+		case requestor <- printRequest:
+			break
+		case <-time.After(5 * time.Second):
+			response.Status = failed
+			response.Message = "Timed out waiting to job to worker; is the system overloaded?"
 		}
 
 		if err != nil {
-			writer.WriteHeader(http.StatusInternalServerError)
-			writer.Header().Add("content-type", "application/json")
-
-			val, err = json5.Marshal(struct {
+			return c.JSON(http.StatusBadRequest, struct {
 				Errmsg string `json:"error"`
 			}{Errmsg: err.Error()})
-		} else {
-			writer.WriteHeader(http.StatusOK)
-			writer.Header().Add("content-type", "application/json")
 		}
 
-		writer.Write(val)
+		return c.Redirect(http.StatusFound, fmt.Sprintf("/job/%s", printRequest.Jobid))
 	}
 }
 
@@ -206,6 +195,9 @@ func RunPrintServer(serviceHost string, port int, printerDialAddress string) {
 	database := createDB()
 	defer database.Close()
 
+	requestChain := make(chan *printJobRequest, 20)
+	go handleJobs(requestChain, database, printerDialAddress)
+
 	// Announce on network it exists
 	host, _ := os.Hostname()
 	info := []string{"ZPL Printer REST service"}
@@ -213,19 +205,15 @@ func RunPrintServer(serviceHost string, port int, printerDialAddress string) {
 	mserver, _ := mdns.NewServer(&mdns.Config{Zone: service})
 	defer mserver.Shutdown()
 
-	// Spin up the worker goroutine that takes pictures
-	jobRunner := make(chan *printJobRequest, 20)
-	go handleJobs(jobRunner, database, printerDialAddress)
-	defer close(jobRunner)
+	e := echo.New()
+	e.HideBanner = true
+	e.Debug = true
 
-	// Spin up HTTP API
-	serverMux := mux.NewRouter()
-	serverMux.HandleFunc("/job/{id}", printJobWatcher(serverMux, database))
-	serverMux.HandleFunc("/print", printJobRequestor(serverMux, jobRunner, database))
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Level: 5,
+	}))
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%v", serviceHost, port),
-		Handler: serverMux,
-	}
-	server.ListenAndServe()
+	e.GET("/job/:id", getJob(database))
+	e.POST("/print", printJob(database, requestChain))
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", port)))
 }

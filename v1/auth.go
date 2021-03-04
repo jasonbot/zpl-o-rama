@@ -4,19 +4,24 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/mail"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/labstack/echo"
 )
 
 // JWT is stupidly heavyweight for this. The cookie is:
 // $username|$expiration_epoch|hmac('$username|$expiration_epoch', secret)
 
 const partSplit = "|"
+const cookieKey = "applogin"
 
 func validateLoginCookieString(validationString string) (*mail.Address, error) {
 	parts := strings.Split(validationString, partSplit)
@@ -106,8 +111,8 @@ emailCheck:
 	return fmt.Sprintf("%s%s%s", userValidationString, partSplit, hmacString), nil
 }
 
-func getLoginInfo(r *http.Request) (*mail.Address, error) {
-	cookie, err := r.Cookie("login")
+func getLoginInfo(c echo.Context) (*mail.Address, error) {
+	cookie, err := c.Cookie(cookieKey)
 
 	if err != nil {
 		return nil, err
@@ -122,4 +127,85 @@ func getLoginInfo(r *http.Request) (*mail.Address, error) {
 	}
 
 	return nil, err
+}
+
+func setLoginInfo(c echo.Context, cookieString string) {
+	var lifetime time.Duration
+
+	lifetime, err := time.ParseDuration(Config.AuthtokenLifetime)
+
+	if err != nil {
+		lifetime = time.Hour * 4320
+	}
+
+	cookie := http.Cookie{
+		Name:    cookieKey,
+		Value:   cookieString,
+		Expires: time.Now().Add(lifetime),
+	}
+	c.SetCookie(&cookie)
+}
+
+func verifyIDToken(idToken string, c echo.Context) error {
+	qToken := url.QueryEscape(idToken)
+	fetchURL := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", qToken)
+	response, err := http.Get(fetchURL)
+
+	if err != nil {
+		return nil
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return errors.New("Did not get back a valid response from login server")
+	}
+
+	var identityResponse struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}
+
+	decoder := json.NewDecoder(response.Body)
+	err = decoder.Decode(&identityResponse)
+
+	if err != nil {
+		return nil
+	}
+
+	if identityResponse.Name == "" {
+		identityResponse.Name = identityResponse.Email
+	}
+
+	email := mail.Address{
+		Name:    identityResponse.Name,
+		Address: identityResponse.Email,
+	}
+
+	cookieLogin, err := makeLoginCookieString(email.String())
+
+	if err != nil {
+		return err
+	}
+
+	setLoginInfo(c, cookieLogin)
+
+	return c.Redirect(http.StatusFound, "/application")
+}
+
+func deleteIDToken(c echo.Context) {
+	cookie := http.Cookie{
+		Name:    cookieKey,
+		Value:   "",
+		Expires: time.Now(),
+	}
+	c.SetCookie(&cookie)
+}
+
+func loginMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		user, _ := getLoginInfo(c)
+
+		c.Set("login", user)
+
+		return next(c)
+	}
 }

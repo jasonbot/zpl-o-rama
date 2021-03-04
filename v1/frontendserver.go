@@ -3,61 +3,47 @@ package zplorama
 import (
 	"embed"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strings"
 
-	"github.com/gorilla/mux"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 )
 
 //go:embed static/*
 var staticContent embed.FS
 
-func goToStatic(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/static/index.html", http.StatusMovedPermanently)
+type loginRequestStruct struct {
+	IDToken string `json:"id_token"`
 }
 
-func staticFileHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(r.RequestURI))
+func doLogin(c echo.Context) error {
+	loginRequest := new(loginRequestStruct)
+	c.Bind(&loginRequest)
+
+	return verifyIDToken(loginRequest.IDToken, c)
 }
 
-func logRequest(request *http.Request) {
-	fmt.Printf("%v %v %v\n", request.Method, request.URL, request.Proto)
-	// Add the host
-	fmt.Printf("Host: %v\n", request.Host)
-	// Loop through headers
-	for name, headers := range request.Header {
-		name = strings.ToLower(name)
-		for _, h := range headers {
-			fmt.Printf("%v: %v\n", name, h)
-		}
-	}
-
-	body, _ := ioutil.ReadAll(request.Body)
-	fmt.Println(string(body))
+func doLogout(c echo.Context) error {
+	return deleteIDToken(c)
 }
 
 // RunFrontendServer runs the server
 func RunFrontendServer(port int, apiendpoint string) {
-	serverMux := mux.NewRouter()
+	e := echo.New()
+	e.HideBanner = true
+	e.Debug = true
 
-	serverMux.HandleFunc("/callback/", func(response http.ResponseWriter, request *http.Request) {
-		logRequest(request)
-		http.Redirect(response, request, "/static/", http.StatusMovedPermanently)
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{Level: 5}))
+
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Hello, World!")
 	})
 
-	/*
-		serverMux.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
-			printRequest(request)
-			http.Redirect(response, request, "/static/", http.StatusMovedPermanently)
-		})
-	*/
+	e.POST("/login", doLogin)
+	e.POST("/logout", doLogout)
+	e.GET("/static/*", echo.WrapHandler(http.FileServer(http.FS(staticContent))))
 
-	serverMux.PathPrefix("/").Handler(http.FileServer(http.FS(staticContent)))
+	e.Use(loginMiddleware)
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", port)))
 
-	server := &http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%v", port),
-		Handler: serverMux,
-	}
-	server.ListenAndServe()
 }

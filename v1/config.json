@@ -12,7 +12,7 @@
     // Host to access print API on
     "printservice_host": "127.0.0.1",
     // Time to wait after sending to printer before taking picture
-    "print_time": "10s",
+    "print_time": "5s",
     // Length of time to let login tokens last (4320h is approx. 6 months)
     "authtoken_lifetime": "4320h",
     // Salt for secret generation when making login token
