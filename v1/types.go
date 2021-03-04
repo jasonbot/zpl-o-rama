@@ -1,6 +1,7 @@
 package zplorama
 
-type confStruct struct {
+// ConfStruct is the configuration for the services
+type ConfStruct struct {
 	GoogleSite        string   `json:"google_site"`
 	FrontendPort      int      `json:"frontend_port"`
 	PrintserviceHost  string   `json:"printservice_host"`

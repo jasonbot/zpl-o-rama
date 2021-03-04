@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/mail"
 	"strconv"
 	"strings"
@@ -103,4 +104,28 @@ emailCheck:
 	hmacString := makeHmacString(userValidationString)
 
 	return fmt.Sprintf("%s%s%s", userValidationString, partSplit, hmacString), nil
+}
+
+func getLoginInfo(r *http.Request) (*mail.Address, error) {
+	cookie, err := r.Cookie("login")
+
+	if err != nil {
+		return nil, err
+	}
+
+	if cookie == nil {
+		err = errors.New("Login cookie is empty")
+	} else if cookie.Value == "" {
+		err = errors.New("Login cookie value is empty")
+	} else {
+		return validateLoginCookieString(cookie.Value)
+	}
+
+	return nil, err
+}
+
+func renderError(w http.ResponseWriter, err error, returnFormat AuthErrorFormat) {
+	if returnFormat == ErrorFormatJSON {
+		w.WriteHeader(http.StatusForbidden)
+	}
 }

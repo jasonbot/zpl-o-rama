@@ -60,61 +60,58 @@ func takePicture() ([]byte, error) {
 }
 
 func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress string) error {
-	for {
-		select {
-		case jobToDo := <-jobCache:
+	for jobToDo := range jobCache {
 
-			startJob(db, jobToDo.Jobid)
+		startJob(db, jobToDo.Jobid)
 
-			status := printJobStatus{
-				Jobid:    jobToDo.Jobid,
-				Status:   processing,
-				ZPL:      jobToDo.ZPL,
-				ImageB64: emptyPNG,
-				Created:  time.Now().Format(time.RFC3339),
-				Updated:  time.Now().Format(time.RFC3339),
-				Author:   jobToDo.Author,
-				Message:  "",
-			}
-
-			updateJob(db, &status)
-
-			var err error
-
-			if status.ZPL != "" {
-				err = sendZPL(printerAddress, status.ZPL)
-
-				if err == nil {
-					td, err := time.ParseDuration(Config.PrintTime)
-
-					if err != nil {
-						td = 5 * time.Second
-						err = nil
-					}
-					time.Sleep(td)
-				}
-			}
-
-			if err != nil {
-				status.Status = failed
-				status.Message = err.Error()
-			} else {
-				imageBytes, err := takePicture()
-				status.ImageB64 = base64.StdEncoding.EncodeToString(imageBytes)
-
-				if err == nil {
-					status.Status = succeeded
-				} else {
-					status.Message = err.Error()
-					status.Status = failed
-				}
-			}
-
-			updateJob(db, &status)
-		default: // Channel closed, out of work.
-			return nil
+		status := printJobStatus{
+			Jobid:    jobToDo.Jobid,
+			Status:   processing,
+			ZPL:      jobToDo.ZPL,
+			ImageB64: emptyPNG,
+			Created:  time.Now().Format(time.RFC3339),
+			Updated:  time.Now().Format(time.RFC3339),
+			Author:   jobToDo.Author,
+			Message:  "",
 		}
+
+		updateJob(db, &status)
+
+		var err error
+
+		if status.ZPL != "" {
+			err = sendZPL(printerAddress, status.ZPL)
+
+			if err == nil {
+				td, err := time.ParseDuration(Config.PrintTime)
+
+				if err != nil {
+					td = 5 * time.Second
+					err = nil
+				}
+				time.Sleep(td)
+			}
+		}
+
+		if err != nil {
+			status.Status = failed
+			status.Message = err.Error()
+		} else {
+			imageBytes, err := takePicture()
+			status.ImageB64 = base64.StdEncoding.EncodeToString(imageBytes)
+
+			if err == nil {
+				status.Status = succeeded
+			} else {
+				status.Message = err.Error()
+				status.Status = failed
+			}
+		}
+
+		updateJob(db, &status)
 	}
+
+	return nil
 }
 
 func printJobWatcher(router *mux.Router, db *bolt.DB) func(http.ResponseWriter, *http.Request) {

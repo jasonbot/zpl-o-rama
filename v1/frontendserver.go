@@ -21,7 +21,7 @@ func staticFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(r.RequestURI))
 }
 
-func printRequest(request *http.Request) {
+func logRequest(request *http.Request) {
 	fmt.Printf("%v %v %v\n", request.Method, request.URL, request.Proto)
 	// Add the host
 	fmt.Printf("Host: %v\n", request.Host)
@@ -42,7 +42,7 @@ func RunFrontendServer(port int, apiendpoint string) {
 	serverMux := mux.NewRouter()
 
 	serverMux.HandleFunc("/callback/", func(response http.ResponseWriter, request *http.Request) {
-		printRequest(request)
+		logRequest(request)
 		http.Redirect(response, request, "/static/", http.StatusMovedPermanently)
 	})
 
