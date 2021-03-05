@@ -30,11 +30,23 @@
     --mist-100: #BCF6FD,
     --mist-70: #D0F9FE,
     --snow-100: #F4F3ED,
+
+    --serif-font: Rubik, "Segoe UI", Roboto, sans-serif;
+    --mono-font: "Fira Code", "Fira Mono", "Menlo", "Cascadia Code", "Roboto Mono", "Andale Mono", "Courier New", monospace;
 }
 
 body {
     background-color: var(--sky-10);
     padding: 0;
     margin: 0;
-    font-family: 'Fira Code', 'Menlo', 'Cascadia Code', 'Andale Mono', 'Courier New', Courier, monospace;
+    font-family: var(--mono-font);
+}
+
+a {
+    text-decoration: none;
+    color: var(--ocean-80);
+}
+
+a:visited {
+    color: var(--ocean-100);
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/mdns"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/yosuke-furukawa/json5/encoding/json5"
 )
 
 type errJSON struct {
@@ -29,20 +28,8 @@ func startJob(db *bolt.DB, jobID string) {
 }
 
 func updateJob(db *bolt.DB, job *printJobStatus) {
-	db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(printjobTable))
-
-		job.Updated = time.Now().Format(time.RFC3339)
-
-		jobBytes, err := json5.Marshal(job)
-
-		if err == nil {
-			err = bucket.Put([]byte(job.Jobid), jobBytes)
-
-		}
-
-		return err
-	})
+	job.Updated = time.Now().Format(time.RFC3339)
+	PutRecord(db, job)
 }
 
 func sendZPL(dial, zpl string) error {
@@ -120,33 +107,16 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 
 func getJob(database *bolt.DB) func(echo.Context) error {
 	return func(c echo.Context) error {
-		database.View(func(tx *bolt.Tx) error {
-			var err error
+		jobStatus := new(printJobStatus)
+		jobStatus.Jobid = c.Param("id")
 
-			bucket := tx.Bucket([]byte(printjobTable))
-			statusBytes := bucket.Get([]byte(c.Param("id")))
+		err := GetRecord(database, jobStatus)
 
-			if statusBytes == nil || len(statusBytes) == 0 {
-				return c.JSON(http.StatusNotFound, errJSON{Errmsg: "Job not found"})
-			}
+		if err != nil {
+			return c.JSON(http.StatusNotFound, errJSON{Errmsg: "Job not found"})
+		}
 
-			var jobStatus printJobStatus
-			err = json5.Unmarshal(statusBytes, &jobStatus)
-
-			if err != nil {
-				return c.JSON(http.StatusBadRequest, errJSON{Errmsg: err.Error()})
-			}
-
-			c.Response().Header().Add("Cache-Control", "no-store")
-
-			if err != nil {
-				c.JSON(http.StatusBadRequest, errJSON{Errmsg: err.Error()})
-			}
-
-			return c.JSON(http.StatusOK, jobStatus)
-		})
-
-		return nil
+		return c.JSON(http.StatusOK, jobStatus)
 	}
 }
 

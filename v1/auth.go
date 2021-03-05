@@ -196,6 +196,7 @@ func deleteIDToken(c echo.Context) {
 		Name:    cookieKey,
 		Value:   "",
 		Expires: time.Now(),
+		MaxAge:  -1,
 	}
 	c.SetCookie(&cookie)
 }

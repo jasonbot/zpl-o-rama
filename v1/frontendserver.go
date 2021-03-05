@@ -24,7 +24,9 @@ func doLogin(c echo.Context) error {
 }
 
 func doLogout(c echo.Context) error {
-	return deleteIDToken(c)
+	deleteIDToken(c)
+
+	return c.String(http.StatusNoContent, "")
 }
 
 // RunFrontendServer runs the server

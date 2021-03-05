@@ -1,5 +1,10 @@
 package zplorama
 
+const (
+	printjobTable = "print-jobs"
+	jobTimeTable  = "print-times"
+)
+
 // ConfStruct is the configuration for the services
 type ConfStruct struct {
 	GoogleSite        string   `json:"google_site"`
@@ -40,4 +45,13 @@ type printJobStatus struct {
 	Updated  string        `json:"updated"`
 	Author   string        `json:"author"`
 	Message  string        `json:"message"`
+}
+
+// Make this struct boltable
+func (*printJobStatus) Table() string {
+	return printjobTable
+}
+
+func (job *printJobStatus) Key() string {
+	return job.Jobid
 }
