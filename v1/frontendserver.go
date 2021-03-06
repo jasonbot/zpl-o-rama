@@ -3,6 +3,7 @@ package zplorama
 import (
 	"bytes"
 	"embed"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -190,6 +191,12 @@ func displayJob(c echo.Context) error {
 
 	body := renderTemplateString("job-status", job)
 
+	if job.Done {
+		c.Response().Header().Set("Cache-Control", "max-age=31536000")
+	} else {
+		c.Response().Header().Set("Cache-Control", "max-age=0")
+	}
+
 	return c.Render(http.StatusOK, "main", struct {
 		Title string
 		User  string
@@ -201,11 +208,35 @@ func displayJob(c echo.Context) error {
 	})
 }
 
+func displayJobImage(c echo.Context) error {
+	job, err := fetchJobCall(c.Param("id"))
+
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	}
+
+	if job.Done {
+		c.Response().Header().Set("Cache-Control", "max-age=31536000")
+	} else {
+		c.Response().Header().Set("Cache-Control", "max-age=0")
+	}
+
+	data, _ := base64.StdEncoding.DecodeString(job.ImageB64)
+
+	return c.Blob(http.StatusOK, "image/png", data)
+}
+
 func displayJobPartial(c echo.Context) error {
 	job, err := fetchJobCall(c.Param("id"))
 
 	if err != nil {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	}
+
+	if job.Done {
+		c.Response().Header().Set("Cache-Control", "max-age=31536000")
+	} else {
+		c.Response().Header().Set("Cache-Control", "max-age=0")
 	}
 
 	body := renderTemplateString("job-status-part", job)
@@ -242,8 +273,9 @@ func RunFrontendServer(port int, apiendpoint string) {
 	// Webapp paths
 	e.GET("/home", homePage, loginMiddleware)
 	e.POST("/print", printMedia, loginMiddleware)
-	e.GET("/job/:id", displayJob, loginMiddleware)
-	e.GET("/job/:id/partial", displayJobPartial)
+	e.GET("/job/:id", displayJob, loginMiddleware, middleware.Gzip())
+	e.GET("/job/:id/image.png", displayJobImage, middleware.Gzip())
+	e.GET("/job/:id/partial", displayJobPartial, middleware.Gzip())
 
 	// Serve up static files
 	e.GET("/static/*", echo.WrapHandler(http.FileServer(http.FS(staticContent))))

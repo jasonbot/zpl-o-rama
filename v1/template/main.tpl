@@ -9,7 +9,7 @@
         <a href="#" id="signout" onclick="signOut();">Sign out</a>
     {{else}}
         Not signed in
-        <div id="my-signin2" data-onsuccess="onSignIn"></div>
+        <div id="app-signin" data-onsuccess="onSignIn"></div>
     {{end}}
     <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
 {{end}}
@@ -33,7 +33,7 @@
     <p>Created <span id="jobcreated">{{ html .Created }}</span> by <span id="jobauthor">{{ html .Author }}</span></p>
     <p><b>Job Status:</b> <span id="jobstatus">{{ html .Status }}</span></p>
     <div id="zplimage" class="zplimage">
-        <img class="scanimage" src="data:image/png;base64,{{ html .ImageB64 }}" alt="Your image" />
+        <img class="scanimage" src="/job/{{ .Jobid }}/image.png" alt="Your image" />
     </div>
 
     <h3>Log</h3>
@@ -52,7 +52,7 @@
         {{ template "job-status-part" . }}
     </div>
 
-    <script>updateJobStatus('{{ html .Jobid }}')</script>
+    {{if .Done }} <!-- Already done --> {{ else }} <script>updateJobStatus('{{ html .Jobid }}')</script> {{end}}
 
     <a href="/home">&larr; Back to home</a>
 {{end}}

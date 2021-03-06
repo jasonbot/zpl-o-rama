@@ -49,6 +49,7 @@ type printJobStatus struct {
 	Author   string        `json:"author"`
 	Message  string        `json:"message"`
 	Log      []string      `json:"log"`
+	Done     bool          `json:"done"`
 }
 
 // Make this struct boltable

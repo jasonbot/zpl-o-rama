@@ -56,7 +56,7 @@ function signOut() {
 
 function onFailure(e) {}
 function renderButton() {
-  gapi.signin2.render("my-signin2", {
+  gapi.signin2.render("app-signin", {
     scope: "profile email",
     width: 100,
     height: 20,
@@ -85,7 +85,7 @@ function updateJobStatus(jobid) {
       e.json().then((j) => { 
         handleHotwireResponse(j);
 
-        if (j.message == "PROCESSING" || j.message == "PENDING") {
+        if (!j.done) {
           window.setTimeout(() => updateJobStatus(jobid), 500)
         }
       })

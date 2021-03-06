@@ -69,6 +69,7 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 			Author:   jobToDo.Author,
 			Message:  "Job started, enqueueing",
 			Log:      make([]string, 0),
+			Done:     false,
 		}
 
 		updateJob(db, &status)
@@ -98,12 +99,14 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 
 			if err == nil {
 				status.Status = succeeded
+				status.Message = "Successfully processed request"
 				status.ImageB64 = base64.StdEncoding.EncodeToString(imageBytes)
 			} else {
 				status.Message = err.Error()
 				status.Status = failed
 			}
 		}
+		status.Done = true
 
 		updateJob(db, &status)
 	}
@@ -145,6 +148,7 @@ func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Cont
 			Updated:  time.Now().Format(time.RFC3339),
 			Author:   printRequest.Author,
 			Message:  "Job created",
+			Done:     false,
 		}
 
 		updateJob(database, &response)
@@ -156,6 +160,7 @@ func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Cont
 			err = errors.New("Failed to queue job in time")
 			response.Status = failed
 			response.Message = "Timed out waiting to job to worker; is the system overloaded?"
+			response.Done = true
 			updateJob(database, &response)
 		}
 
