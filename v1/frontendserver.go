@@ -3,9 +3,12 @@ package zplorama
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/mail"
 	"text/template"
 
 	"github.com/labstack/echo"
@@ -52,7 +55,7 @@ type loginRequestStruct struct {
 
 func doLogin(c echo.Context) error {
 	loginRequest := new(loginRequestStruct)
-	c.Bind(&loginRequest)
+	c.Bind(loginRequest)
 
 	err := verifyIDToken(loginRequest.IDToken, c)
 
@@ -103,15 +106,125 @@ func homePage(c echo.Context) error {
 }
 
 func printMedia(c echo.Context) error {
-	return c.String(http.StatusGone, "oof")
+	if !(c.Get("logged_in").(bool)) {
+		return c.JSON(http.StatusUnauthorized, errJSON{Errmsg: "You're not logged in."})
+	}
+
+	printRequest := new(printJobRequest)
+	c.Bind(printRequest)
+
+	printRequest.Author = c.Get("login").(*mail.Address).Address
+
+	printHost := fmt.Sprintf("http://%v:%v/print", Config.PrintserviceHost, Config.PrintservicePort)
+
+	body, _ := json.Marshal(&printRequest)
+	buf := bytes.NewBuffer(body)
+
+	response, err := http.Post(printHost, "application/json", buf)
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errJSON{Errmsg: err.Error()})
+	}
+
+	if response.StatusCode != http.StatusOK {
+		var errMsg errJSON
+
+		dec := json.NewDecoder(response.Body)
+		dec.Decode(&errMsg)
+
+		return c.JSON(http.StatusBadRequest, errMsg)
+	} else {
+		var status printJobStatus
+
+		dec := json.NewDecoder(response.Body)
+		dec.Decode(&status)
+		if status.Jobid != "" {
+			return c.Redirect(http.StatusFound, fmt.Sprintf("/job/%v", status.Jobid))
+		}
+	}
+
+	return c.JSON(http.StatusInternalServerError, errJSON{Errmsg: "No idea what happened here."})
+}
+
+func fetchJobCall(jobID string) (printJobStatus, error) {
+	jobURL := fmt.Sprintf("http://%v:%v/job/%v", Config.PrintserviceHost, Config.PrintservicePort, jobID)
+
+	response, err := http.Get(jobURL)
+
+	if err != nil {
+		return printJobStatus{}, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		var errMsg errJSON
+
+		dec := json.NewDecoder(response.Body)
+		dec.Decode(&errMsg)
+
+		return printJobStatus{}, errors.New(errMsg.Errmsg)
+	} else {
+		var status printJobStatus
+
+		dec := json.NewDecoder(response.Body)
+		dec.Decode(&status)
+		if status.Jobid != "" {
+			return status, nil
+		}
+	}
+
+	return printJobStatus{}, errors.New("Unknown failure")
 }
 
 func displayJob(c echo.Context) error {
-	return c.String(http.StatusGone, "oof")
+	job, err := fetchJobCall(c.Param("id"))
+
+	var jobString string
+
+	if err == nil {
+		var jobBytes []byte
+
+		jobBytes, err = json.MarshalIndent(job, "", " ")
+		jobString = string(jobBytes)
+	}
+
+	if err == nil {
+		var userName string
+
+		if c.Get("logged_in").(bool) == true {
+			userName = c.Get("user_name").(string)
+		}
+
+		body := renderTemplateString(
+			"job-status",
+			struct {
+				Code string
+			}{
+				Code: jobString,
+			},
+		)
+
+		return c.Render(http.StatusOK, "main", struct {
+			Title string
+			User  string
+			Body  string
+		}{
+			Title: "ZPL-O-Rama: Print Job",
+			User:  userName,
+			Body:  body,
+		})
+	}
+
+	return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
 }
 
 func displayJobPartial(c echo.Context) error {
-	return c.String(http.StatusGone, "oof")
+	job, err := fetchJobCall(c.Param("id"))
+
+	if job.Created != "" {
+		return c.JSON(http.StatusOK, job)
+	} else {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	}
 }
 
 // RunFrontendServer runs the server
@@ -136,7 +249,7 @@ func RunFrontendServer(port int, apiendpoint string) {
 
 	// Webapp paths
 	e.GET("/home", homePage, loginMiddleware)
-	e.GET("/print", printMedia, loginMiddleware)
+	e.POST("/print", printMedia, loginMiddleware)
 	e.GET("/job/:id", displayJob, loginMiddleware)
 	e.GET("/job/:id/partial", displayJobPartial)
 

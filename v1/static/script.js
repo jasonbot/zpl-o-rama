@@ -30,7 +30,7 @@ function onSignIn(googleUser) {
       } else {
         handleHotwireResponse({
           div_id: "mainsection",
-          HTML: "There was an error logging in! Maybe you're not allowed in?",
+          HTML: "There was an error logging in! Maybe you're not allowed to?",
         });
       }
     });

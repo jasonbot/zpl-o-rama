@@ -33,7 +33,7 @@ const (
 const emptyPNG string = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 type printJobRequest struct {
-	ZPL    string `json:"ZPL"`
+	ZPL    string `json:"ZPL" form:"ZPL" query:"ZPL"`
 	Author string `json:"author"`
 	// NOT PUBLIC -- assigned by the software at execution time
 	jobid string

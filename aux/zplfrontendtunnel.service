@@ -3,7 +3,7 @@ Description=Setup a secure tunnel to prod for ZPL service
 After=network.target
 
 [Service]
-ExecStart=ssh -R 5489:localhost:5489 USER@HOST -N
+ExecStart=ssh -o ExitOnForwardFailure=yes -R 5489:localhost:5489 USER@HOST -N
 
 # Restart every >2 seconds to avoid StartLimitInterval failure
 RestartSec=5

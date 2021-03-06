@@ -3,14 +3,25 @@
     <p>This site isn't very interesting unless you log in.</p>
 {{end}}
 
+{{define "job-status"}}
+    <h1>Job</h1>
+    <div id="jobstatus">
+        {{ template "job-status-part" . }}
+    </div>
+{{end}}
+
+{{define "job-status-part"}}
+    <pre>{{ .Code }}</pre>
+{{end}}
+
 {{define "input-zpl-form"}}
     <h1>Let's render some ZPL on physical media!</h1>
     <form action="/print" method="post">
         <div>
-            <textarea id="zplinput" rows="15" cols="80" name="ZPL"></textarea>
+            <textarea name="ZPL" id="zplinput" rows="15" cols="80" name="ZPL"></textarea>
         </div>
         <div>
-            <button type="submit">Go do it</button>
+            <button type="submit" class="godoit">Go do it</button>
         </div>
     </form>
 {{end}}

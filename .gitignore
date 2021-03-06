@@ -17,5 +17,5 @@ bin/
 /.vscode/
 .mod
 
-/v1/config.json
+v1/config.json
 *.boltdb
