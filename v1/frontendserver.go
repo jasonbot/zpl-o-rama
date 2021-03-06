@@ -3,7 +3,6 @@ package zplorama
 import (
 	"bytes"
 	"embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/yosuke-furukawa/json5/encoding/json5"
 )
 
 //go:embed static/*
@@ -117,7 +117,7 @@ func printMedia(c echo.Context) error {
 
 	printHost := fmt.Sprintf("http://%v:%v/print", Config.PrintserviceHost, Config.PrintservicePort)
 
-	body, _ := json.Marshal(&printRequest)
+	body, _ := json5.Marshal(&printRequest)
 	buf := bytes.NewBuffer(body)
 
 	response, err := http.Post(printHost, "application/json", buf)
@@ -129,14 +129,14 @@ func printMedia(c echo.Context) error {
 	if response.StatusCode != http.StatusOK {
 		var errMsg errJSON
 
-		dec := json.NewDecoder(response.Body)
+		dec := json5.NewDecoder(response.Body)
 		dec.Decode(&errMsg)
 
 		return c.JSON(http.StatusBadRequest, errMsg)
 	} else {
 		var status printJobStatus
 
-		dec := json.NewDecoder(response.Body)
+		dec := json5.NewDecoder(response.Body)
 		dec.Decode(&status)
 		if status.Jobid != "" {
 			return c.Redirect(http.StatusFound, fmt.Sprintf("/job/%v", status.Jobid))
@@ -158,14 +158,14 @@ func fetchJobCall(jobID string) (printJobStatus, error) {
 	if response.StatusCode != http.StatusOK {
 		var errMsg errJSON
 
-		dec := json.NewDecoder(response.Body)
+		dec := json5.NewDecoder(response.Body)
 		dec.Decode(&errMsg)
 
 		return printJobStatus{}, errors.New(errMsg.Errmsg)
 	} else {
 		var status printJobStatus
 
-		dec := json.NewDecoder(response.Body)
+		dec := json5.NewDecoder(response.Body)
 		dec.Decode(&status)
 		if status.Jobid != "" {
 			return status, nil
@@ -183,7 +183,7 @@ func displayJob(c echo.Context) error {
 	if err == nil {
 		var jobBytes []byte
 
-		jobBytes, err = json.MarshalIndent(job, "", " ")
+		jobBytes, err = json5.MarshalIndent(job, "", " ")
 		jobString = string(jobBytes)
 	}
 

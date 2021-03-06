@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
+	"github.com/yosuke-furukawa/json5/encoding/json5"
 )
 
 // JWT is stupidly heavyweight for this. The cookie is:
@@ -166,7 +166,7 @@ func verifyIDToken(idToken string, c echo.Context) error {
 		Email string `json:"email"`
 	}
 
-	decoder := json.NewDecoder(response.Body)
+	decoder := json5.NewDecoder(response.Body)
 	err = decoder.Decode(&identityResponse)
 
 	if err != nil {
