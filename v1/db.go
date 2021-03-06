@@ -7,12 +7,8 @@ import (
 	"github.com/yosuke-furukawa/json5/encoding/json5"
 )
 
-const (
-	jobDB string = "jobs.boltdb"
-)
-
-func createDB() *bolt.DB {
-	db, err := bolt.Open(jobDB, 0600, nil)
+func createDB(filename string) *bolt.DB {
+	db, err := bolt.Open(filename, 0600, nil)
 
 	if err != nil {
 		panic(err)

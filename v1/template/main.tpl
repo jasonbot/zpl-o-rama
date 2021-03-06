@@ -1,0 +1,37 @@
+{{define "loginbar"}}
+    {{if ne .User ""}}
+        Signed in as {{ html .User }} |
+        <a href="#" id="signout" onclick="signOut();">Sign out</a>
+    {{else}}
+        <div class="g-signin2" data-onsuccess="onSignIn"></div>
+    {{end}}
+{{end}}
+
+{{define "main"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="google-signin-client_id"
+        content="930425038670-r329a89h71kj1iop89lobd5st8k40ml1.apps.googleusercontent.com">
+    <title>{{ .Title }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js"></script>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+</head>
+
+<body>
+    <div id="page">
+        <div id="loginbar">
+            {{ template "loginbar"  . }}
+        </div>
+
+        <div id="mainsection">
+            {{ .Body }}
+        </div>
+    </div>
+</body>
+
+</html>
+{{end}}

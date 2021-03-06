@@ -23,19 +23,32 @@ function onSignIn(googleUser) {
       localStorage.setItem("profile-image", profile.getImageUrl());
       localStorage.setItem("profile-email", profile.getEmail());
       localStorage.removeItem("profile-token");
+
+      e.json().then((j) => handleHotwireResponse(e));
     }
   });
 }
 
 function signOut() {
-  var auth2 = gapi.auth2.getAuthInstance();
-  auth2.signOut().then(function () {
-    fetch("/logout", { method: "POST" }).then(() => {
-      localStorage.setItem("profile-signedin", "false");
-      localStorage.removeItem("profile-id");
-      localStorage.removeItem("profile-name");
-      localStorage.removeItem("profile-image");
-      localStorage.removeItem("profile-email");
-    });
+  fetch("/logout", { method: "POST" }).then((e) => {
+    localStorage.setItem("profile-signedin", "false");
+    localStorage.removeItem("profile-id");
+    localStorage.removeItem("profile-name");
+    localStorage.removeItem("profile-image");
+    localStorage.removeItem("profile-email");
+    console.log("OUT");
+
+    if (e.ok) {
+      e.json().then((j) => handleHotwireResponse(e));
+    }
   });
+
+  if (gapi !== undefined && gapi.auth2 !== undefined) {
+    var auth2 = gapi.auth2.getAuthInstance();
+    auth2.signOut();
+  }
+}
+
+function handleHotwireResponse(r) {
+  document.getElementById(r.div_id).innerHTML = r.HTML;
 }

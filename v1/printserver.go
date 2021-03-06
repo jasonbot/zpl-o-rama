@@ -2,6 +2,7 @@ package zplorama
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -13,21 +14,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/mdns"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
 )
 
-type errJSON struct {
-	Errmsg string `json:"error"`
-}
-
 func startJob(db *bolt.DB, jobID string) {
-	db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(jobTimeTable))
-		return bucket.Put([]byte(time.Now().Format(time.RFC3339)), []byte(jobID))
-	})
+	jobRecord := jobTimestamp{
+		Timestamp: time.Now().Format(time.RFC3339),
+		Jobid:     jobID,
+	}
+	PutRecord(db, &jobRecord)
 }
 
 func updateJob(db *bolt.DB, job *printJobStatus) {
+	if job.Log == nil {
+		job.Log = make([]string, 0)
+	}
+
+	if job.Message != "" && (len(job.Log) == 0 || job.Log[len(job.Log)-1] != job.Message) {
+		job.Log = append(job.Log, job.Message)
+	}
+
 	job.Updated = time.Now().Format(time.RFC3339)
 	PutRecord(db, job)
 }
@@ -52,17 +57,18 @@ func takePicture() ([]byte, error) {
 
 func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress string) error {
 	for jobToDo := range jobCache {
-		startJob(db, jobToDo.Jobid)
+		startJob(db, jobToDo.jobid)
 
 		status := printJobStatus{
-			Jobid:    jobToDo.Jobid,
+			Jobid:    jobToDo.jobid,
 			Status:   processing,
 			ZPL:      jobToDo.ZPL,
 			ImageB64: emptyPNG,
 			Created:  time.Now().Format(time.RFC3339),
 			Updated:  time.Now().Format(time.RFC3339),
 			Author:   jobToDo.Author,
-			Message:  "",
+			Message:  "Job started, enqueueing",
+			Log:      make([]string, 0),
 		}
 
 		updateJob(db, &status)
@@ -127,10 +133,11 @@ func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Cont
 		printRequest := new(printJobRequest)
 		c.Bind(&printRequest)
 
-		printRequest.Jobid = uuid.NewString()
+		jobid := uuid.NewString()
+		printRequest.jobid = jobid
 
 		response := printJobStatus{
-			Jobid:    printRequest.Jobid,
+			Jobid:    jobid,
 			Status:   pending,
 			ZPL:      printRequest.ZPL,
 			ImageB64: emptyPNG,
@@ -146,8 +153,10 @@ func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Cont
 		case requestor <- printRequest:
 			break
 		case <-time.After(5 * time.Second):
+			err = errors.New("Failed to queue job in time")
 			response.Status = failed
 			response.Message = "Timed out waiting to job to worker; is the system overloaded?"
+			updateJob(database, &response)
 		}
 
 		if err != nil {
@@ -156,13 +165,13 @@ func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Cont
 			}{Errmsg: err.Error()})
 		}
 
-		return c.Redirect(http.StatusFound, fmt.Sprintf("/job/%s", printRequest.Jobid))
+		return c.Redirect(http.StatusFound, fmt.Sprintf("/job/%s", jobid))
 	}
 }
 
 // RunPrintServer executes the HTTP server
 func RunPrintServer(serviceHost string, port int, printerDialAddress string) {
-	database := createDB()
+	database := createDB(Config.BackendDatabase)
 	defer database.Close()
 
 	requestChain := make(chan *printJobRequest, 20)
@@ -178,10 +187,6 @@ func RunPrintServer(serviceHost string, port int, printerDialAddress string) {
 	e := echo.New()
 	e.HideBanner = true
 	e.Debug = true
-
-	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-		Level: 5,
-	}))
 
 	e.GET("/job/:id", getJob(database))
 	e.POST("/print", printJob(database, requestChain))

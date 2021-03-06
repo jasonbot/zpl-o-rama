@@ -188,7 +188,7 @@ func verifyIDToken(idToken string, c echo.Context) error {
 
 	setLoginInfo(c, cookieLogin)
 
-	return c.Redirect(http.StatusFound, "/application")
+	return nil
 }
 
 func deleteIDToken(c echo.Context) {
@@ -204,8 +204,17 @@ func deleteIDToken(c echo.Context) {
 func loginMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		user, _ := getLoginInfo(c)
-
 		c.Set("login", user)
+
+		if user != nil {
+			if user.Name == "" {
+				c.Set("user_name", user.Address)
+			} else {
+				c.Set("user_name", user.Name)
+			}
+		} else {
+			c.Set("user_name", "")
+		}
 
 		return next(c)
 	}

@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the backend printer server on localhost
+After=network.target
+
+[Service]
+ExecStart=/home/zplorama/bin/printer -printeraddress 192.168.220.81
+
+# Restart every >2 seconds to avoid StartLimitInterval failure
+RestartSec=5
+Restart=always
+User=zplorama
+Group=zplorama
+WorkingDirectory=/home/zplorama
+
+[Install]
+WantedBy=multi-user.target

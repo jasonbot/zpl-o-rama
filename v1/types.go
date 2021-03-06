@@ -15,6 +15,8 @@ type ConfStruct struct {
 	AuthtokenLifetime string   `json:"authtoken_lifetime"`
 	AuthSecret        string   `json:"authsecret"`
 	AllowedLogins     []string `json:"allowed_logins"`
+	BackendDatabase   string   `json:"backend_database"`
+	FrontenedDatabase string   `json:"frontend_database"`
 }
 
 // Represents the state of the print job
@@ -31,9 +33,10 @@ const (
 const emptyPNG string = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 
 type printJobRequest struct {
-	Jobid  string `json:"jobid,omitempty"`
 	ZPL    string `json:"ZPL"`
 	Author string `json:"author"`
+	// NOT PUBLIC -- assigned by the software at execution time
+	jobid string
 }
 
 type printJobStatus struct {
@@ -45,6 +48,7 @@ type printJobStatus struct {
 	Updated  string        `json:"updated"`
 	Author   string        `json:"author"`
 	Message  string        `json:"message"`
+	Log      []string      `json:"log"`
 }
 
 // Make this struct boltable
@@ -54,4 +58,28 @@ func (*printJobStatus) Table() string {
 
 func (job *printJobStatus) Key() string {
 	return job.Jobid
+}
+
+type jobTimestamp struct {
+	Timestamp string `json:"timestamp"`
+	Jobid     string `json:"job_id"`
+}
+
+// Make this struct boltable
+func (*jobTimestamp) Table() string {
+	return jobTimeTable
+}
+
+func (ts *jobTimestamp) Key() string {
+	return ts.Timestamp
+}
+
+type hotwireResponse struct {
+	Message string `json:"message"`
+	DivID   string `json:"div_id"`
+	HTML    string `json:"HTML"`
+}
+
+type errJSON struct {
+	Errmsg string `json:"error"`
 }
