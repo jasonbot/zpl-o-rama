@@ -1,10 +1,12 @@
 {{define "loginbar"}}
     {{if ne .User ""}}
-        Signed in as {{ html .User }} |
+        Signed in as {{ html .User }}
         <a href="#" id="signout" onclick="signOut();">Sign out</a>
     {{else}}
-        <div class="g-signin2" data-onsuccess="onSignIn"></div>
+        Not signed in
+        <div id="my-signin2" data-onsuccess="onSignIn"></div>
     {{end}}
+    <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
 {{end}}
 
 {{define "main"}}
@@ -18,7 +20,6 @@
     <title>{{ .Title }}</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/script.js"></script>
-    <script src="https://apis.google.com/js/platform.js" async defer></script>
 </head>
 
 <body>

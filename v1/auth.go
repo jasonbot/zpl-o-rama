@@ -212,8 +212,10 @@ func loginMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			} else {
 				c.Set("user_name", user.Name)
 			}
+			c.Set("logged_in", true)
 		} else {
 			c.Set("user_name", "")
+			c.Set("logged_in", false)
 		}
 
 		return next(c)

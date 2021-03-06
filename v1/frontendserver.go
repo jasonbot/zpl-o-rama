@@ -36,6 +36,13 @@ func init() {
 	}
 }
 
+func renderTemplateString(name string, data interface{}) string {
+	var buffer bytes.Buffer
+	templates.ExecuteTemplate(&buffer, "loginbar", data)
+
+	return string(buffer.Bytes())
+}
+
 type loginRequestStruct struct {
 	IDToken string `json:"id_token"`
 }
@@ -47,58 +54,26 @@ func doLogin(c echo.Context) error {
 	err := verifyIDToken(loginRequest.IDToken, c)
 
 	if err == nil {
-		var buffer bytes.Buffer
 		userName := c.Get("user_name").(string)
 
-		templates.ExecuteTemplate(&buffer, "loginbar", struct{ User string }{User: userName})
+		html := renderTemplateString("loginbar", struct{ User string }{User: userName})
 		return c.JSON(http.StatusOK, &hotwireResponse{
 			Message: "Logged in",
 			DivID:   "loginbar",
-			HTML:    string(buffer.Bytes()),
+			HTML:    html,
 		})
-	} else {
-		return c.JSON(http.StatusUnauthorized, &errJSON{Errmsg: fmt.Sprintf("Cannot log in: %v", err)})
 	}
-}
 
-func doLoginForce(c echo.Context) error {
-	cookieLogin, _ := makeLoginCookieString("Jason Scheirer <jason.scheirer@gmail.com>")
-	setLoginInfo(c, cookieLogin)
-
-	var buffer bytes.Buffer
-	userName := c.Get("user_name").(string)
-
-	templates.ExecuteTemplate(
-		&buffer,
-		"loginbar",
-		struct {
-			User string
-		}{
-			User: userName,
-		})
-
-	return c.JSON(http.StatusOK, &hotwireResponse{
-		Message: "Logged in",
-		DivID:   "loginbar",
-		HTML:    string(buffer.Bytes()),
-	})
+	return c.JSON(http.StatusUnauthorized, &errJSON{Errmsg: fmt.Sprintf("Cannot log in: %v", err)})
 }
 
 func doLogout(c echo.Context) error {
 	deleteIDToken(c)
 
-	var buffer bytes.Buffer
-	templates.ExecuteTemplate(
-		&buffer,
-		"loginbar",
-		struct {
-			User string
-		}{})
-
 	return c.JSON(http.StatusOK, &hotwireResponse{
-		Message: "Logged in",
+		Message: "Logged out",
 		DivID:   "loginbar",
-		HTML:    string(buffer.Bytes()),
+		HTML:    "Logged out.",
 	})
 }
 
@@ -139,7 +114,6 @@ func RunFrontendServer(port int, apiendpoint string) {
 	})
 
 	// Login-adjacents
-	e.GET("/login", doLoginForce, loginMiddleware)
 	e.POST("/login", doLogin, loginMiddleware)
 	e.POST("/logout", doLogout, loginMiddleware)
 

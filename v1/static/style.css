@@ -58,16 +58,32 @@ a:visited {
 }
 
 #loginbar {
-    text-align: end;
+    height: 3em;
     font-size: smaller;
-    color: var(--ocean-50);
+    color: var(--ocean-100);
+    background-color: var(--sky-20);
     padding: 0.25em;
+
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+#loginbar > * {
+    padding: 0.5em;
 }
 
 #loginbar a {
+    font-weight: bolder;
     color: var(--ocean-50);
 }
 
 #mainsection {
     padding: 0.25em;
+}
+
+div.g-signin2 {
+    display: inline;
 }
