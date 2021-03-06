@@ -28,8 +28,11 @@ var templatesFS embed.FS
 var templates *template.Template
 
 func init() {
+	fm := make(template.FuncMap)
+	fm["GoogleSite"] = func() string { return Config.GoogleSite }
+
 	var err error
-	templates, err = template.ParseFS(templatesFS, "template/*.tpl")
+	templates, err = template.New("webapp").Funcs(fm).ParseFS(templatesFS, "template/*.tpl")
 
 	if err != nil {
 		panic(err)

@@ -16,7 +16,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="google-signin-client_id"
-        content="930425038670-r329a89h71kj1iop89lobd5st8k40ml1.apps.googleusercontent.com">
+        content="{{ GoogleSite}}">
     <title>{{ .Title }}</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/script.js"></script>
