@@ -3,16 +3,17 @@
     <p>This site isn't very interesting unless you log in.</p>
 {{end}}
 
-{{define "job-status"}}
-    <h1>Job</h1>
-    <div id="jobstatus">
-        {{ template "job-status-part" . }}
-    </div>
+{{define "loginbar"}}
+    {{if ne .User ""}}
+        Signed in as {{ html .User }}
+        <a href="#" id="signout" onclick="signOut();">Sign out</a>
+    {{else}}
+        Not signed in
+        <div id="my-signin2" data-onsuccess="onSignIn"></div>
+    {{end}}
+    <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
 {{end}}
 
-{{define "job-status-part"}}
-    <pre>{{ .Code }}</pre>
-{{end}}
 
 {{define "input-zpl-form"}}
     <h1>Let's render some ZPL on physical media!</h1>
@@ -26,15 +27,34 @@
     </form>
 {{end}}
 
-{{define "loginbar"}}
-    {{if ne .User ""}}
-        Signed in as {{ html .User }}
-        <a href="#" id="signout" onclick="signOut();">Sign out</a>
-    {{else}}
-        Not signed in
-        <div id="my-signin2" data-onsuccess="onSignIn"></div>
-    {{end}}
-    <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
+{{define "job-status-part"}}
+
+    <h2>Job <span id="jobid">{{ .Jobid }}</span></h2>
+    <p>Created <span id="jobcreated">{{ html .Created }}</span> by <span id="jobauthor">{{ html .Author }}</span></p>
+    <p><b>Job Status:</b> <span id="jobstatus">{{ html .Status }}</span></p>
+    <div id="zplimage" class="zplimage">
+        <img class="scanimage" src="data:image/png;base64,{{ html .ImageB64 }}" alt="Your image" />
+    </div>
+
+    <h3>Log</h3>
+    <div id="runlog">
+        {{ range .Log }}
+            <div>{{ html . }}</div>
+        {{ end }}
+    </div>
+
+    <hr />
+{{end}}
+
+{{define "job-status"}}
+    <h1>Job</h1>
+    <div id="jobstatus">
+        {{ template "job-status-part" . }}
+    </div>
+
+    <script>updateJobStatus('{{ html .Jobid }}')</script>
+
+    <a href="/home">&larr; Back to home</a>
 {{end}}
 
 {{define "main"}}

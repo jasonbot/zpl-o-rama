@@ -178,53 +178,45 @@ func fetchJobCall(jobID string) (printJobStatus, error) {
 func displayJob(c echo.Context) error {
 	job, err := fetchJobCall(c.Param("id"))
 
-	var jobString string
-
-	if err == nil {
-		var jobBytes []byte
-
-		jobBytes, err = json5.MarshalIndent(job, "", " ")
-		jobString = string(jobBytes)
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
 	}
 
-	if err == nil {
-		var userName string
+	var userName string
 
-		if c.Get("logged_in").(bool) == true {
-			userName = c.Get("user_name").(string)
-		}
-
-		body := renderTemplateString(
-			"job-status",
-			struct {
-				Code string
-			}{
-				Code: jobString,
-			},
-		)
-
-		return c.Render(http.StatusOK, "main", struct {
-			Title string
-			User  string
-			Body  string
-		}{
-			Title: "ZPL-O-Rama: Print Job",
-			User:  userName,
-			Body:  body,
-		})
+	if c.Get("logged_in").(bool) == true {
+		userName = c.Get("user_name").(string)
 	}
 
-	return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	body := renderTemplateString("job-status", job)
+
+	return c.Render(http.StatusOK, "main", struct {
+		Title string
+		User  string
+		Body  string
+	}{
+		Title: "ZPL-O-Rama: Print Job",
+		User:  userName,
+		Body:  body,
+	})
 }
 
 func displayJobPartial(c echo.Context) error {
 	job, err := fetchJobCall(c.Param("id"))
 
-	if job.Created != "" {
-		return c.JSON(http.StatusOK, job)
-	} else {
+	if err != nil {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
 	}
+
+	body := renderTemplateString("job-status-part", job)
+
+	return c.JSON(
+		http.StatusOK,
+		hotwireResponse{
+			Message: string(job.Status),
+			DivID:   "jobstatus",
+			HTML:    body,
+		})
 }
 
 // RunFrontendServer runs the server

@@ -95,10 +95,10 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 			status.Message = err.Error()
 		} else {
 			imageBytes, err := takePicture()
-			status.ImageB64 = base64.StdEncoding.EncodeToString(imageBytes)
 
 			if err == nil {
 				status.Status = succeeded
+				status.ImageB64 = base64.StdEncoding.EncodeToString(imageBytes)
 			} else {
 				status.Message = err.Error()
 				status.Status = failed

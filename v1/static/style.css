@@ -110,3 +110,18 @@ button {
 code {
   white-space: pre;
 }
+
+#zplimage {
+    text-align: center;
+}
+
+.scanimage {
+    width: 50%;
+    max-width: 100%;
+    height: auto;
+    border-width: 2px;
+    border-style: solid;
+    border-color: var(--outerspace-30);
+    border-radius: 1px;
+    box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.03);
+}

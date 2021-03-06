@@ -78,3 +78,17 @@ function handleHotwireResponse(r) {
     }
   }
 }
+
+function updateJobStatus(jobid) {
+  fetch(`/job/${jobid}/partial`).then((e) => {
+    if (e.ok) {
+      e.json().then((j) => { 
+        handleHotwireResponse(j);
+
+        if (j.message == "PROCESSING" || j.message == "PENDING") {
+          window.setTimeout(() => updateJobStatus(jobid), 500)
+        }
+      })
+    }
+  })
+}
