@@ -75,9 +75,10 @@ func (ts *jobTimestamp) Key() string {
 }
 
 type hotwireResponse struct {
-	Message string `json:"message"`
-	DivID   string `json:"div_id"`
-	HTML    string `json:"HTML"`
+	Message string            `json:"message"`
+	Areas   map[string]string `json:"areas,omitempty"`
+	DivID   string            `json:"div_id"`
+	HTML    string            `json:"HTML"`
 }
 
 type errJSON struct {

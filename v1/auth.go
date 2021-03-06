@@ -90,10 +90,12 @@ emailCheck:
 			emailFoundInAllowedList = true
 			break emailCheck
 		} else if email[0] == '@' {
-			parts := strings.SplitN(address.Address, "@", 1)
-			if "@"+parts[1] == email {
-				emailFoundInAllowedList = true
-				break emailCheck
+			if strings.Index(address.Address, "@") != -1 {
+				parts := strings.SplitN(address.Address, "@", 2)
+				if "@"+parts[1] == email {
+					emailFoundInAllowedList = true
+					break emailCheck
+				}
 			}
 		}
 	}

@@ -41,7 +41,7 @@ func init() {
 
 func renderTemplateString(name string, data interface{}) string {
 	var buffer bytes.Buffer
-	templates.ExecuteTemplate(&buffer, "loginbar", data)
+	templates.ExecuteTemplate(&buffer, name, data)
 
 	return string(buffer.Bytes())
 }
@@ -81,12 +81,14 @@ func doLogout(c echo.Context) error {
 }
 
 func homePage(c echo.Context) error {
-	sessionUsername := c.Get("user_name")
+	var body string
+	var userName string
 
-	userName := ""
-
-	if sessionUsername != nil {
-		userName = sessionUsername.(string)
+	if c.Get("logged_in").(bool) == true {
+		userName = c.Get("user_name").(string)
+		body = renderTemplateString("input-zpl-form", nil)
+	} else {
+		body = renderTemplateString("please-log-in", nil)
 	}
 
 	return c.Render(http.StatusOK, "main", struct {
@@ -96,8 +98,20 @@ func homePage(c echo.Context) error {
 	}{
 		Title: "ZPL-O-Rama: Home",
 		User:  userName,
-		Body:  "Hi there.",
+		Body:  body,
 	})
+}
+
+func printMedia(c echo.Context) error {
+	return c.String(http.StatusGone, "oof")
+}
+
+func displayJob(c echo.Context) error {
+	return c.String(http.StatusGone, "oof")
+}
+
+func displayJobPartial(c echo.Context) error {
+	return c.String(http.StatusGone, "oof")
 }
 
 // RunFrontendServer runs the server
@@ -122,6 +136,9 @@ func RunFrontendServer(port int, apiendpoint string) {
 
 	// Webapp paths
 	e.GET("/home", homePage, loginMiddleware)
+	e.GET("/print", printMedia, loginMiddleware)
+	e.GET("/job/:id", displayJob, loginMiddleware)
+	e.GET("/job/:id/partial", displayJobPartial)
 
 	// Serve up static files
 	e.GET("/static/*", echo.WrapHandler(http.FileServer(http.FS(staticContent))))

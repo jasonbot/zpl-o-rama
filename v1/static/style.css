@@ -1,89 +1,103 @@
 :root {
-    --desert-120: #BA900F;
-    --desert-100: #E8B411;
-    --desert-40: #F8E9B8;
-    --desert-20: #FAF0CF;
-    --desert-10: #FCF7E7;
-    --sky-100: #399DE1;
-    --sky-40: #B0D8F3;
-    --sky-30: #C4E2F6;
-    --sky-20: #D7EBF9;
-    --sky-10: #EBF5FC;
-    --sunset-120: #C5501B;
-    --sunset-100: #E36B35;
-    --sunset-30: #F7D3C2;
-    --sunset-20: #F9E1D7;
-    --sunset-10: #FCF0EB;
-    --forest-120: #0A9E6F;
-    --forest-100: #0CC68B;
-    --forest-30: #B6EEDC;
-    --forest-20: #CEF4E8;
-    --forest-10: #E7F9F3;
-    --ocean-100: #002D5B;
-    --ocean-80: #014682;
-    --ocean-50: #0275D8;
-    --outerspace-120: #363636;
-    --outerspace-100: #444444;
-    --outerspace-80: #696969;
-    --outerspace-50: #A2A2A2;
-    --outerspace-30: #C7C7C7;
-    --mist-100: #BCF6FD;
-    --mist-70: #D0F9FE;
-    --snow-100: #F4F3ED;
+  --desert-120: #ba900f;
+  --desert-100: #e8b411;
+  --desert-40: #f8e9b8;
+  --desert-20: #faf0cf;
+  --desert-10: #fcf7e7;
+  --sky-100: #399de1;
+  --sky-40: #b0d8f3;
+  --sky-30: #c4e2f6;
+  --sky-20: #d7ebf9;
+  --sky-10: #ebf5fc;
+  --sunset-120: #c5501b;
+  --sunset-100: #e36b35;
+  --sunset-30: #f7d3c2;
+  --sunset-20: #f9e1d7;
+  --sunset-10: #fcf0eb;
+  --forest-120: #0a9e6f;
+  --forest-100: #0cc68b;
+  --forest-30: #b6eedc;
+  --forest-20: #cef4e8;
+  --forest-10: #e7f9f3;
+  --ocean-100: #002d5b;
+  --ocean-80: #014682;
+  --ocean-50: #0275d8;
+  --outerspace-120: #363636;
+  --outerspace-100: #444444;
+  --outerspace-80: #696969;
+  --outerspace-50: #a2a2a2;
+  --outerspace-30: #c7c7c7;
+  --mist-100: #bcf6fd;
+  --mist-70: #d0f9fe;
+  --snow-100: #f4f3ed;
 
-    --serif-font: Rubik, "Segoe UI", Roboto, sans-serif;
-    --mono-font: "Fira Code", "Fira Mono", "Menlo", "Cascadia Code", "Roboto Mono", "Andale Mono", "Courier New", monospace;
+  --serif-font: Rubik, "Segoe UI", Roboto, sans-serif;
+  --mono-font: "Fira Code", "Fira Mono", "Menlo", "Cascadia Code", "Roboto Mono",
+    "Andale Mono", "Courier New", monospace;
 }
 
 body {
-    background-color: white;
-    padding: 0;
-    margin: 0;
-    font-family: var(--mono-font);
+  background-color: white;
+  padding: 0;
+  margin: 0;
+  font-family: var(--mono-font);
 }
 
 a {
-    text-decoration: none;
-    color: var(--ocean-80);
+  text-decoration: none;
+  color: var(--ocean-80);
 }
 
 a:visited {
-    color: var(--ocean-100);
+  color: var(--ocean-100);
 }
 
 #page {
-    margin: 1em auto;
-    max-width: 80em;
-    background-color: white;
+  margin: 1em auto;
+  max-width: 80em;
+  background-color: white;
 }
 
 #loginbar {
-    height: 3em;
-    font-size: smaller;
-    color: var(--ocean-100);
-    background-color: var(--sky-20);
-    padding: 0.25em;
+  height: 3em;
+  font-size: smaller;
+  color: var(--ocean-100);
+  background-color: var(--sky-20);
+  padding: 0.25em;
 
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 #loginbar > * {
-    padding: 0.5em;
+  padding: 0.5em;
 }
 
 #loginbar a {
-    font-weight: bolder;
-    color: var(--ocean-50);
+  font-weight: bolder;
+  color: var(--ocean-50);
 }
 
 #mainsection {
-    padding: 0.25em;
+  padding: 0.25em;
 }
 
 div.g-signin2 {
-    display: inline;
+  display: inline;
+}
+
+#zplinput {
+  box-sizing: border-box;
+  resize: none;
+  width: 100%;
+  max-width: 100%;
+  max-height: 30%;
+}
+
+button {
+    font-family: var(--mono-font);
+    background-color: var(--snow-100);
 }

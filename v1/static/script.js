@@ -7,6 +7,11 @@ function onSignIn(googleUser) {
   localStorage.setItem("profile-token", idToken);
 
   var auth2 = gapi.auth2.getAuthInstance();
+  handleHotwireResponse({
+    div_id: "mainsection",
+    HTML: "Finishing login flow...",
+  });
+
   auth2.signOut().then(() => {
     fetch("/login", {
       method: "POST",
@@ -21,7 +26,12 @@ function onSignIn(googleUser) {
         localStorage.setItem("profile-email", profile.getEmail());
         localStorage.removeItem("profile-token");
 
-        e.json().then((j) => window.location.reload());
+        window.location.reload();
+      } else {
+        handleHotwireResponse({
+          div_id: "mainsection",
+          HTML: "There was an error logging in! Maybe you're not allowed in?",
+        });
       }
     });
   });
@@ -46,17 +56,25 @@ function signOut() {
 
 function onFailure(e) {}
 function renderButton() {
-  gapi.signin2.render('my-signin2', {
-    'scope': 'profile email',
-    'width': 100,
-    'height': 20,
-    'longtitle': false,
-    'theme': 'light',
-    'onsuccess': onSignIn,
-    'onfailure': onFailure
+  gapi.signin2.render("my-signin2", {
+    scope: "profile email",
+    width: 100,
+    height: 20,
+    longtitle: false,
+    theme: "light",
+    onsuccess: onSignIn,
+    onfailure: onFailure,
   });
 }
 
 function handleHotwireResponse(r) {
-  document.getElementById(r.div_id).innerHTML = r.HTML;
+  if (!!r.div_id) {
+    document.getElementById(r.div_id).innerHTML = r.HTML;
+  }
+
+  if (!!r.areas) {
+    for (const [key, value] of Object.entries(r.areas)) {
+      document.getElementById(key).innerHTML = value;
+    }
+  }
 }
