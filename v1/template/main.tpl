@@ -31,7 +31,10 @@
 
     <h2>Job <span id="jobid">{{ .Jobid }}</span></h2>
     <p>Created <span id="jobcreated">{{ html .Created }}</span> by <span id="jobauthor">{{ html .Author }}</span></p>
-    <p><b>Job Status:</b> <span id="jobstatus">{{ html .Status }}</span></p>
+    <p>
+        <b>Job Status:</b> <span id="jobstatus">{{ html .Status }}</span>
+        {{if .Done }}{{ else }} <div class="spinner"></div> {{end}}
+    </p>
     <div id="zplimage" class="zplimage">
         <img class="scanimage" src="/job/{{ .Jobid }}/image.png" alt="Your image" />
     </div>
