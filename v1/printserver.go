@@ -50,7 +50,7 @@ func sendZPL(dial, zpl string) error {
 }
 
 func takePicture() ([]byte, error) {
-	out, err := exec.Command("raspistill", "-t", "1000", "-e", "png", "-o", "-").Output()
+	out, err := exec.Command("raspistill", "-t", "3000", "-e", "png", "-o", "-").Output()
 
 	return out, err
 }

@@ -86,7 +86,7 @@ function updateJobStatus(jobid) {
         handleHotwireResponse(j);
 
         if (j.message == "PENDING" || j.message == "PROCESSING") {
-          window.setTimeout(() => updateJobStatus(jobid), 500)
+          window.setTimeout(() => updateJobStatus(jobid), 1000)
         }
       })
     }
