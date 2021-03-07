@@ -260,8 +260,6 @@ func RunFrontendServer(port int, apiendpoint string) {
 
 	e.Renderer = &feTemplate{templates: templates}
 
-	e.Use(middleware.Gzip())
-
 	e.GET("/", func(c echo.Context) error {
 		return c.Redirect(http.StatusMovedPermanently, "/home")
 	})

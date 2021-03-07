@@ -94,6 +94,7 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 		if err != nil {
 			status.Status = failed
 			status.Message = err.Error()
+			status.ImageB64 = sadFace
 		} else {
 			imageBytes, err := takePicture()
 
@@ -104,6 +105,7 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 			} else {
 				status.Message = err.Error()
 				status.Status = failed
+				status.ImageB64 = sadFace
 			}
 		}
 		status.Done = true
@@ -159,6 +161,7 @@ func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Cont
 		case <-time.After(5 * time.Second):
 			err = errors.New("Failed to queue job in time")
 			response.Status = failed
+			response.ImageB64 = sadFace
 			response.Message = "Timed out waiting to job to worker; is the system overloaded?"
 			response.Done = true
 			updateJob(database, &response)

@@ -85,7 +85,7 @@ function updateJobStatus(jobid) {
       e.json().then((j) => { 
         handleHotwireResponse(j);
 
-        if (!j.done) {
+        if (j.message == "PENDING" || j.message == "PROCESSING") {
           window.setTimeout(() => updateJobStatus(jobid), 500)
         }
       })

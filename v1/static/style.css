@@ -111,7 +111,18 @@ code {
   white-space: pre;
 }
 
+.status-FAILED::before {
+    content: "✘ ";
+    color: var(--sunset-120);
+}
+
+.status-SUCCESS::before {
+    content: "✔ ";
+    color: var(--forest-120);
+}
+
 #zplimage {
+  image-rendering: pixelated;
   text-align: center;
 }
 
@@ -126,6 +137,10 @@ code {
   box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.03);
 }
 
+.spinner {
+  display: inline;
+}
+
 @keyframes spinner {
   to {
     transform: rotate(360deg);
@@ -136,14 +151,18 @@ code {
   content: "";
   box-sizing: border-box;
   position: absolute;
-  top: 50%;
-  left: 50%;
   width: 20px;
   height: 20px;
-  margin-top: -10px;
-  margin-left: -10px;
   border-radius: 50%;
   border: 2px solid #ccc;
   border-top-color: #000;
   animation: spinner 0.6s linear infinite;
+}
+
+pre {
+  padding: 0.5em;
+  color: var(--outerspace-100);
+  background-color: var(--desert-10);
+  border: 0.125em solid var(--desert-40);
+  border-radius: 0.25em;
 }
