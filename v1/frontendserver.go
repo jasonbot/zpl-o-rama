@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"text/template"
 
+	"github.com/disintegration/imaging"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
@@ -208,6 +209,35 @@ func displayJob(c echo.Context) error {
 	})
 }
 
+func displaySmallJobImage(c echo.Context) error {
+	job, err := fetchJobCall(c.Param("id"))
+
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	}
+
+	data, _ := base64.StdEncoding.DecodeString(job.ImageB64)
+
+	image, err := imaging.Decode(bytes.NewBuffer(data))
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, errJSON{Errmsg: err.Error()})
+	}
+
+	resizedImage := imaging.Resize(image, 800, 0, imaging.Box)
+
+	var smallImage bytes.Buffer
+	imaging.Encode(&smallImage, resizedImage, imaging.PNG)
+
+	if job.Done {
+		c.Response().Header().Set("Cache-Control", "max-age=31536000")
+	} else {
+		c.Response().Header().Set("Cache-Control", "max-age=10")
+	}
+
+	return c.Blob(http.StatusOK, "image/png", smallImage.Bytes())
+}
+
 func displayJobImage(c echo.Context) error {
 	job, err := fetchJobCall(c.Param("id"))
 
@@ -220,6 +250,13 @@ func displayJobImage(c echo.Context) error {
 	} else {
 		c.Response().Header().Set("Cache-Control", "max-age=0")
 	}
+
+	c.Response().Header().Set(
+		"Content-Disposition",
+		fmt.Sprintf(
+			"attachment; filename=\"%v-original.png\"",
+			job.Jobid,
+		))
 
 	data, _ := base64.StdEncoding.DecodeString(job.ImageB64)
 
@@ -272,7 +309,8 @@ func RunFrontendServer(port int, apiendpoint string) {
 	e.GET("/home", homePage, loginMiddleware)
 	e.POST("/print", printMedia, loginMiddleware)
 	e.GET("/job/:id", displayJob, loginMiddleware, middleware.Gzip())
-	e.GET("/job/:id/image.png", displayJobImage, middleware.Gzip())
+	e.GET("/job/:id/image.png", displaySmallJobImage, middleware.Gzip())
+	e.GET("/job/:id/original.png", displayJobImage, middleware.Gzip())
 	e.GET("/job/:id/partial", displayJobPartial, middleware.Gzip())
 
 	// Serve up static files

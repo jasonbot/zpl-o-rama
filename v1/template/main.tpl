@@ -39,7 +39,9 @@
     </div>
     <div id="zplimage" class="zplimage">
         {{ if .Done }} 
-            <img class="scanimage" src="/job/{{ .Jobid }}/image.png" alt="Your image" />
+            <!-- ?{{ .Status }} is a cache-buster -->
+            <img class="scanimage" src="/job/{{ .Jobid }}/image.png?{{ .Status }}" alt="Your image" />
+            <p><a href="/job/{{ .Jobid }}/original.png" download>Download original size image</a></p>
         {{ end }} 
 
         {{ if eq .ZPL "" }}
