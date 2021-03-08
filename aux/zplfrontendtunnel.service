@@ -8,6 +8,7 @@ ExecStart=ssh -o ExitOnForwardFailure=yes -R 5489:localhost:5489 USER@HOST -N
 # Restart every >2 seconds to avoid StartLimitInterval failure
 RestartSec=5
 Restart=always
+RuntimeMaxSec=21600
 User=zplorama
 Group=zplorama
 WorkingDirectory=/home/zplorama
