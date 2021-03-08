@@ -11,7 +11,6 @@ import (
 	"net/mail"
 	"text/template"
 
-	"github.com/disintegration/imaging"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
@@ -212,30 +211,33 @@ func displayJob(c echo.Context) error {
 func displaySmallJobImage(c echo.Context) error {
 	job, err := fetchJobCall(c.Param("id"))
 
-	if err != nil {
-		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
-	}
-
-	data, _ := base64.StdEncoding.DecodeString(job.ImageB64)
-
-	image, err := imaging.Decode(bytes.NewBuffer(data))
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errJSON{Errmsg: err.Error()})
-	}
-
-	resizedImage := imaging.Resize(image, 800, 0, imaging.Box)
-
-	var smallImage bytes.Buffer
-	imaging.Encode(&smallImage, resizedImage, imaging.PNG)
-
 	if job.Done {
 		c.Response().Header().Set("Cache-Control", "max-age=31536000")
 	} else {
 		c.Response().Header().Set("Cache-Control", "max-age=10")
 	}
 
-	return c.Blob(http.StatusOK, "image/png", smallImage.Bytes())
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	}
+
+	if job.Done {
+		c.Response().Header().Set("Cache-Control", "max-age=31536000")
+	} else {
+		c.Response().Header().Set("Cache-Control", "max-age=0")
+	}
+
+	if job.ImageB64Small == "" {
+		job.ImageB64Small, err = shrinkImage(job.ImageB64)
+	}
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, errJSON{Errmsg: err.Error()})
+	}
+
+	data, _ := base64.StdEncoding.DecodeString(job.ImageB64Small)
+
+	return c.Blob(http.StatusOK, "image/png", data)
 }
 
 func displayJobImage(c echo.Context) error {

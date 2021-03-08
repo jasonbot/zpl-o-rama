@@ -1,6 +1,7 @@
 package zplorama
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
 	"github.com/hashicorp/mdns"
 	"github.com/labstack/echo"
@@ -60,16 +62,17 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 		startJob(db, jobToDo.jobid)
 
 		status := printJobStatus{
-			Jobid:    jobToDo.jobid,
-			Status:   processing,
-			ZPL:      jobToDo.ZPL,
-			ImageB64: emptyPNG,
-			Created:  time.Now().Format(time.RFC3339),
-			Updated:  time.Now().Format(time.RFC3339),
-			Author:   jobToDo.Author,
-			Message:  "Job started, enqueueing",
-			Log:      make([]string, 0),
-			Done:     false,
+			Jobid:         jobToDo.jobid,
+			Status:        processing,
+			ZPL:           jobToDo.ZPL,
+			ImageB64:      emptyPNG,
+			ImageB64Small: emptyPNG,
+			Created:       time.Now().Format(time.RFC3339),
+			Updated:       time.Now().Format(time.RFC3339),
+			Author:        jobToDo.Author,
+			Message:       "Job started, enqueueing",
+			Log:           make([]string, 0),
+			Done:          false,
 		}
 
 		updateJob(db, &status)
@@ -95,17 +98,26 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 			status.Status = failed
 			status.Message = err.Error()
 			status.ImageB64 = sadFace
+			status.ImageB64Small = sadFace
 		} else {
+
 			imageBytes, err := takePicture()
+			var b64string, b64smallstring string
+			if err == nil {
+				b64string = base64.StdEncoding.EncodeToString(imageBytes)
+				b64smallstring, err = shrinkImage(b64string)
+			}
 
 			if err == nil {
 				status.Status = succeeded
 				status.Message = "Successfully processed request"
-				status.ImageB64 = base64.StdEncoding.EncodeToString(imageBytes)
+				status.ImageB64 = b64string
+				status.ImageB64Small = b64smallstring
 			} else {
 				status.Message = err.Error()
 				status.Status = failed
 				status.ImageB64 = sadFace
+				status.ImageB64Small = sadFace
 			}
 		}
 		status.Done = true
@@ -175,6 +187,23 @@ func printJob(database *bolt.DB, requestor chan *printJobRequest) func(echo.Cont
 
 		return c.Redirect(http.StatusFound, fmt.Sprintf("/job/%s", jobid))
 	}
+}
+
+func shrinkImage(imageB64 string) (string, error) {
+	data, _ := base64.StdEncoding.DecodeString(imageB64)
+
+	image, err := imaging.Decode(bytes.NewBuffer(data))
+
+	if err != nil {
+		return "", err
+	}
+
+	resizedImage := imaging.Resize(image, 800, 0, imaging.Box)
+
+	var smallImage bytes.Buffer
+	imaging.Encode(&smallImage, resizedImage, imaging.PNG)
+
+	return base64.StdEncoding.EncodeToString(smallImage.Bytes()), nil
 }
 
 // RunPrintServer executes the HTTP server

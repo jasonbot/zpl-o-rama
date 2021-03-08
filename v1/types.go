@@ -41,16 +41,17 @@ type printJobRequest struct {
 }
 
 type printJobStatus struct {
-	Jobid    string        `json:"jobid"`
-	Status   pictureStatus `json:"status"`
-	ZPL      string        `json:"ZPL"`
-	ImageB64 string        `json:"image"`
-	Created  string        `json:"created"`
-	Updated  string        `json:"updated"`
-	Author   string        `json:"author"`
-	Message  string        `json:"message"`
-	Log      []string      `json:"log"`
-	Done     bool          `json:"done"`
+	Jobid         string        `json:"jobid"`
+	Status        pictureStatus `json:"status"`
+	ZPL           string        `json:"ZPL"`
+	ImageB64      string        `json:"image"`
+	ImageB64Small string        `json:"image_small"`
+	Created       string        `json:"created"`
+	Updated       string        `json:"updated"`
+	Author        string        `json:"author"`
+	Message       string        `json:"message"`
+	Log           []string      `json:"log"`
+	Done          bool          `json:"done"`
 }
 
 // Make this struct boltable
