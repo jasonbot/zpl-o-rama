@@ -39,6 +39,24 @@ func GetRecord(database *bolt.DB, record Boltable) error {
 	database.View(func(tx *bolt.Tx) error {
 
 		bucket := tx.Bucket([]byte(record.Table()))
+		nested := record.(BoltableNested)
+		if nested != nil {
+			subBucketName := nested.SubBucket()
+
+			if subBucketName != "" {
+				subbucket := bucket.Bucket([]byte(subBucketName))
+				if subbucket == nil {
+					subbucket, err = bucket.CreateBucket([]byte(subBucketName))
+
+					if err != nil {
+						return err
+					}
+				}
+
+				bucket = subbucket
+			}
+		}
+
 		recordBytes := bucket.Get([]byte(record.Key()))
 
 		if recordBytes == nil || len(recordBytes) == 0 {
@@ -67,6 +85,25 @@ func PutRecord(database *bolt.DB, record Boltable) error {
 		}
 
 		bucket := tx.Bucket([]byte(record.Table()))
+
+		nested := record.(BoltableNested)
+		if nested != nil {
+			subBucketName := nested.SubBucket()
+
+			if subBucketName != "" {
+				subbucket := bucket.Bucket([]byte(subBucketName))
+				if subbucket == nil {
+					subbucket, err = bucket.CreateBucket([]byte(subBucketName))
+
+					if err != nil {
+						return err
+					}
+				}
+
+				bucket = subbucket
+			}
+		}
+
 		err = bucket.Put([]byte(record.Key()), recordBytes)
 
 		return err
@@ -79,4 +116,10 @@ func PutRecord(database *bolt.DB, record Boltable) error {
 type Boltable interface {
 	Table() string
 	Key() string
+}
+
+// BoltableNested allows for using nested buckets on records; it's a tack-on method
+type BoltableNested interface {
+	SubBucket() string
+	Boltable
 }

@@ -7,3 +7,5 @@ This repo contains a front-end server which interfaces with an also included RES
 3. That's it
 
 A demo is available online at _HAHAHA LIKE I'M LETTING YOU JACKALS HAVE ACCESS TO HARDWARE THAT USES ACTUAL PHYSICAL RESOURCES_.
+
+See [my blindingly brilliant blog post series](https://www.jasonscheirer.com/tags/zpl-o-rama/) for more information.
