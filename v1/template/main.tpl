@@ -5,7 +5,11 @@
 
 {{define "loginbar"}}
     {{if ne .User ""}}
-        Signed in as {{ html .User }}
+        Signed in as 
+        {{if ne .Picture ""}}
+            <img src="{{ .Picture }}" class="profilepicture" alt="your face" />
+        {{end}}
+        {{ html .User }}
         <a href="#" id="signout" onclick="signOut();">Sign out</a>
     {{else}}
         Not signed in

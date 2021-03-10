@@ -64,8 +64,16 @@ func doLogin(c echo.Context) error {
 
 	if err == nil {
 		userName := c.Get("user_name").(string)
+		picture := c.Get("picture").(string)
 
-		html := renderTemplateString("loginbar", struct{ User string }{User: userName})
+		html := renderTemplateString("loginbar",
+			struct {
+				User    string
+				Picture string
+			}{
+				User:    userName,
+				Picture: picture,
+			})
 		return c.JSON(http.StatusOK, &hotwireResponse{
 			Message: "Logged in",
 			DivID:   "loginbar",
@@ -162,22 +170,26 @@ func doSignInCallback(c echo.Context) error {
 func homePage(c echo.Context) error {
 	var body string
 	var userName string
+	var picture string
 
 	if c.Get("logged_in").(bool) == true {
 		userName = c.Get("user_name").(string)
+		picture = c.Get("picture").(string)
 		body = renderTemplateString("input-zpl-form", nil)
 	} else {
 		body = renderTemplateString("please-log-in", nil)
 	}
 
 	return c.Render(http.StatusOK, "main", struct {
-		Title string
-		User  string
-		Body  string
+		Title   string
+		User    string
+		Body    string
+		Picture string
 	}{
-		Title: "ZPL-O-Rama: Home",
-		User:  userName,
-		Body:  body,
+		Title:   "ZPL-O-Rama: Home",
+		User:    userName,
+		Body:    body,
+		Picture: picture,
 	})
 }
 
@@ -258,10 +270,11 @@ func displayJob(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
 	}
 
-	var userName string
+	var userName, picture string
 
 	if c.Get("logged_in").(bool) == true {
 		userName = c.Get("user_name").(string)
+		picture = c.Get("picture").(string)
 	}
 
 	body := renderTemplateString("job-status", job)
@@ -273,13 +286,15 @@ func displayJob(c echo.Context) error {
 	}
 
 	return c.Render(http.StatusOK, "main", struct {
-		Title string
-		User  string
-		Body  string
+		Title   string
+		User    string
+		Body    string
+		Picture string
 	}{
-		Title: "ZPL-O-Rama: Print Job",
-		User:  userName,
-		Body:  body,
+		Title:   "ZPL-O-Rama: Print Job",
+		User:    userName,
+		Body:    body,
+		Picture: picture,
 	})
 }
 

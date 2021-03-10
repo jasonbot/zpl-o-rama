@@ -3,12 +3,6 @@ function signOut() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   }).then((e) => {
-    localStorage.setItem("profile-signedin", "false");
-    localStorage.removeItem("profile-id");
-    localStorage.removeItem("profile-name");
-    localStorage.removeItem("profile-image");
-    localStorage.removeItem("profile-email");
-
     if (e.ok) {
       window.location.reload();
     }

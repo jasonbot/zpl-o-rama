@@ -166,3 +166,9 @@ pre {
   border: 0.125em solid var(--desert-40);
   border-radius: 0.25em;
 }
+
+.profilepicture {
+  width: 32px;
+  height: auto;
+  border-radius: 6px;
+}
