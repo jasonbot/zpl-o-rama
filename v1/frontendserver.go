@@ -367,8 +367,8 @@ func RunFrontendServer(port int, apiendpoint string) {
 	e.POST("/logout", doLogout, loginMiddleware)
 
 	// Login-adjacents
-	e.POST("/signin", doSignIn, loginMiddleware)
-	e.POST("/callback", doSignInCallback, loginMiddleware)
+	e.GET("/signin", doSignIn, loginMiddleware)
+	e.GET("/callback", doSignInCallback, loginMiddleware)
 	e.POST("/signout", doLogout, loginMiddleware)
 
 	// Webapp paths
