@@ -118,8 +118,6 @@ func doSignInCallback(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Post to OpenID: " + openIDTokenEndpoint + " -- " + err.Error()})
 	}
 
-	return c.Stream(http.StatusOK, "text/plain", response.Body)
-
 	var idToken openIDResponseToken
 	decoder := json5.NewDecoder(response.Body)
 	err = decoder.Decode(&idToken)
@@ -128,11 +126,13 @@ func doSignInCallback(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding response: " + err.Error()})
 	}
 
+	tokenParts := strings.SplitN(idToken.IDtoken, ".", 3)
+
 	var token openIDResponseIDToken
-	err = json5.Unmarshal([]byte(idToken.IDtoken), &token)
+	err = json5.Unmarshal([]byte(tokenParts[1]), &token)
 
 	if err != nil {
-		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding idtoken: " + idToken.IDtoken + err.Error()})
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding idtoken: " + err.Error()})
 	}
 
 	user := mail.Address{Name: token.Name, Address: token.Name}
