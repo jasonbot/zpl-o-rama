@@ -97,5 +97,5 @@ type openIDResponseIDToken struct {
 }
 
 type openIDResponseToken struct {
-	IDtoken openIDResponseIDToken `json:"id_token"`
+	IDtoken string `json:"id_token"`
 }

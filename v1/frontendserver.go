@@ -126,7 +126,14 @@ func doSignInCallback(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding response: " + err.Error()})
 	}
 
-	user := mail.Address{Name: idToken.IDtoken.Name, Address: idToken.IDtoken.Name}
+	var token openIDResponseIDToken
+	err = json5.Unmarshal([]byte(idToken.IDtoken), &token)
+
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding idtoken: " + idToken.IDtoken + err.Error()})
+	}
+
+	user := mail.Address{Name: token.Name, Address: token.Name}
 	if user.Name == "" {
 		user.Name = user.Address
 	}
@@ -138,7 +145,7 @@ func doSignInCallback(c echo.Context) error {
 	}
 
 	setLoginInfo(c, tokenString)
-	setPicture(c, idToken.IDtoken.Picture)
+	setPicture(c, token.Picture)
 
 	return c.Redirect(http.StatusFound, "/home")
 }
