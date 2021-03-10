@@ -276,6 +276,7 @@ func getOpenIDAuthorizationEndpoint() string {
 	dec.Decode(&authEndpoint)
 
 	openIDAuthEndpoint = authEndpoint.AuthorizationEndpoint
+	openIDTokenEndpoint = authEndpoint.TokenEndpoint
 
 	return authEndpoint.AuthorizationEndpoint
 }
