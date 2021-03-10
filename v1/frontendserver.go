@@ -142,7 +142,7 @@ func doSignInCallback(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding idtoken: " + err.Error()})
 	}
 
-	user := mail.Address{Name: token.Name, Address: token.Name}
+	user := mail.Address{Name: token.Name, Address: token.Email}
 	if user.Name == "" {
 		user.Name = user.Address
 	}
