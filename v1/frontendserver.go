@@ -150,7 +150,7 @@ func doSignInCallback(c echo.Context) error {
 	tokenString, err := makeLoginCookieString(user.String())
 
 	if err != nil {
-		return c.JSON(http.StatusForbidden, errJSON{Errmsg: "Can't log you in: " + jsonBlob + user.String() + err.Error()})
+		return c.JSON(http.StatusForbidden, errJSON{Errmsg: "Can't log you in: " + string(jsonBlob) + user.String() + err.Error()})
 	}
 
 	setLoginInfo(c, tokenString)
