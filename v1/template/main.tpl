@@ -9,9 +9,8 @@
         <a href="#" id="signout" onclick="signOut();">Sign out</a>
     {{else}}
         Not signed in
-        <div id="app-signin" data-onsuccess="onSignIn"></div>
+        <a href="/signin">Sign in</a>
     {{end}}
-    <script src="https://apis.google.com/js/platform.js?onload=renderButton" async defer></script>
 {{end}}
 
 
