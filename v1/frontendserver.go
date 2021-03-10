@@ -115,7 +115,7 @@ func doSignInCallback(c echo.Context) error {
 	response, err := http.Post(openIDTokenEndpoint, "application/x-www-form-urlencoded", bytes.NewBuffer(bodyBytes))
 
 	if err != nil {
-		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Post to OpenID: " + openIDTokenEndpoint + " -- " + err.Error()})
 	}
 
 	var idToken openIDResponseToken
@@ -123,10 +123,9 @@ func doSignInCallback(c echo.Context) error {
 	err = decoder.Decode(&idToken)
 
 	if err != nil {
-		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding response: " + err.Error()})
 	}
 
-	return c.Stream(http.StatusOK, "text/plain", response.Body)
 	user := mail.Address{Name: idToken.IDtoken.Name, Address: idToken.IDtoken.Name}
 	if user.Name == "" {
 		user.Name = user.Address
@@ -135,7 +134,7 @@ func doSignInCallback(c echo.Context) error {
 	tokenString, err := makeLoginCookieString(user.String())
 
 	if err != nil {
-		return c.JSON(http.StatusForbidden, errJSON{Errmsg: err.Error()})
+		return c.JSON(http.StatusForbidden, errJSON{Errmsg: "Can't log you in: " + err.Error()})
 	}
 
 	setLoginInfo(c, tokenString)
