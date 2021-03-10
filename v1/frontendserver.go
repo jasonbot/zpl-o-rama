@@ -118,6 +118,8 @@ func doSignInCallback(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Post to OpenID: " + openIDTokenEndpoint + " -- " + err.Error()})
 	}
 
+	return c.Stream(http.StatusOK, "text/plain", response.Body)
+
 	var idToken openIDResponseToken
 	decoder := json5.NewDecoder(response.Body)
 	err = decoder.Decode(&idToken)
