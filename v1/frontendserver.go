@@ -106,6 +106,7 @@ func doSignInCallback(c echo.Context) error {
 		fmt.Sprintf("code=%v", url.QueryEscape(code)),
 		fmt.Sprintf("client_id=%v", url.QueryEscape(Config.GoogleSite)),
 		fmt.Sprintf("client_secret=%v", url.QueryEscape(Config.AppSecret)),
+		"response_type=code",
 		fmt.Sprintf("redirect_uri=%v", url.QueryEscape(Config.AuthCallback)),
 		"grant_type=authorization_code",
 	}
