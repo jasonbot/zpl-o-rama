@@ -128,8 +128,15 @@ func doSignInCallback(c echo.Context) error {
 
 	tokenParts := strings.SplitN(idToken.IDtoken, ".", 3)
 
+	jsonBlob, err := base64.StdEncoding.DecodeString(tokenParts[1])
+
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Unbase64ing idtoken: " + err.Error()})
+	}
+
 	var token openIDResponseIDToken
-	err = json5.Unmarshal([]byte(tokenParts[1]), &token)
+
+	err = json5.Unmarshal(jsonBlob, &token)
 
 	if err != nil {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Decoding idtoken: " + err.Error()})
