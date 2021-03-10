@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/mail"
+	"net/url"
+	"strings"
 	"text/template"
 
 	"github.com/labstack/echo"
@@ -82,6 +84,64 @@ func doLogout(c echo.Context) error {
 		DivID:   "loginbar",
 		HTML:    "Logged out.",
 	})
+}
+
+func doSignIn(c echo.Context) error {
+	if c.Get("logged_in").(bool) {
+		return c.Redirect(http.StatusFound, "/")
+	}
+
+	return c.Redirect(http.StatusSeeOther, getOpenIDAuthorizationEndpoint())
+}
+
+func doSignInCallback(c echo.Context) error {
+	code := c.QueryParam("code")
+	state := c.QueryParam("state")
+
+	if !validateOpenIDConnectToken(state) {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: "Potential MitM attack?"})
+	}
+
+	params := []string{
+		fmt.Sprintf("code=%v", url.QueryEscape(code)),
+		fmt.Sprintf("client_id=%v", url.QueryEscape(Config.GoogleSite)),
+		fmt.Sprintf("client_secret=%v", url.QueryEscape(Config.AppSecret)),
+		fmt.Sprintf("redirect_uri=%v", url.QueryEscape(Config.AuthCallback)),
+		"grant_type=authorization_code",
+	}
+
+	bodyBytes := []byte(strings.Join(params, "&"))
+
+	response, err := http.Post(openIDTokenEndpoint, "application/x-www-form-urlencoded", bytes.NewBuffer(bodyBytes))
+
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	}
+
+	var idToken openIDResponseToken
+	decoder := json5.NewDecoder(response.Body)
+	err = decoder.Decode(&idToken)
+
+	if err != nil {
+		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+	}
+
+	return c.Stream(http.StatusOK, "text/plain", response.Body)
+	user := mail.Address{Name: idToken.IDtoken.Name, Address: idToken.IDtoken.Name}
+	if user.Name == "" {
+		user.Name = user.Address
+	}
+
+	tokenString, err := makeLoginCookieString(user.String())
+
+	if err != nil {
+		return c.JSON(http.StatusForbidden, errJSON{Errmsg: err.Error()})
+	}
+
+	setLoginInfo(c, tokenString)
+	setPicture(c, idToken.IDtoken.Picture)
+
+	return c.Redirect(http.StatusFound, "/home")
 }
 
 func homePage(c echo.Context) error {
@@ -306,6 +366,11 @@ func RunFrontendServer(port int, apiendpoint string) {
 	// Login-adjacents
 	e.POST("/login", doLogin, loginMiddleware)
 	e.POST("/logout", doLogout, loginMiddleware)
+
+	// Login-adjacents
+	e.POST("/signin", doSignIn, loginMiddleware)
+	e.POST("/callback", doSignInCallback, loginMiddleware)
+	e.POST("/signout", doLogout, loginMiddleware)
 
 	// Webapp paths
 	e.GET("/home", homePage, loginMiddleware)

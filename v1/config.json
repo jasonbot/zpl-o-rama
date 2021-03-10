@@ -5,6 +5,10 @@
 {
   // <YOURAPP>.apps.googleusercontent.com, where you set up your oauth thing
   "google_site": "930425038670-r329a89h71kj1iop89lobd5st8k40ml1.apps.googleusercontent.com",
+  // App secret in console
+  "app_secret": "<SECRET>",
+  // Site to redirect back to for google auth
+  "auth_callback": "https://localhost/auth_callback",
   // Default port to run frontend service on
   "frontend_port": 5489,
   // Port to run RESTful print-only API on

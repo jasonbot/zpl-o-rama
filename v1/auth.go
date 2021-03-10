@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
 )
@@ -22,6 +23,10 @@ import (
 
 const partSplit = "|"
 const cookieKey = "applogin"
+const cookiePictureKey = "applogin.picture"
+
+var openIDAuthEndpoint string
+var openIDTokenEndpoint string
 
 func validateLoginCookieString(validationString string) (*mail.Address, error) {
 	parts := strings.Split(validationString, partSplit)
@@ -113,11 +118,11 @@ emailCheck:
 	return fmt.Sprintf("%s%s%s", userValidationString, partSplit, hmacString), nil
 }
 
-func getLoginInfo(c echo.Context) (*mail.Address, error) {
+func getLoginInfo(c echo.Context) (*mail.Address, string, error) {
 	cookie, err := c.Cookie(cookieKey)
 
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if cookie == nil {
@@ -125,10 +130,18 @@ func getLoginInfo(c echo.Context) (*mail.Address, error) {
 	} else if cookie.Value == "" {
 		err = errors.New("Login cookie value is empty")
 	} else {
-		return validateLoginCookieString(cookie.Value)
+		pictureCookie, err := c.Cookie(cookiePictureKey)
+		picture := ""
+
+		if err == nil && pictureCookie != nil {
+			picture = pictureCookie.Value
+		}
+
+		mail, err := validateLoginCookieString(cookie.Value)
+		return mail, picture, err
 	}
 
-	return nil, err
+	return nil, "", err
 }
 
 func setLoginInfo(c echo.Context, cookieString string) {
@@ -148,6 +161,23 @@ func setLoginInfo(c echo.Context, cookieString string) {
 	c.SetCookie(&cookie)
 }
 
+func setPicture(c echo.Context, URI string) {
+	var lifetime time.Duration
+
+	lifetime, err := time.ParseDuration(Config.AuthtokenLifetime)
+
+	if err != nil {
+		lifetime = time.Hour * 4320
+	}
+
+	cookie := http.Cookie{
+		Name:    cookiePictureKey,
+		Value:   URI,
+		Expires: time.Now().Add(lifetime),
+	}
+	c.SetCookie(&cookie)
+}
+
 func verifyIDToken(idToken string, c echo.Context) error {
 	qToken := url.QueryEscape(idToken)
 	fetchURL := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", qToken)
@@ -162,8 +192,9 @@ func verifyIDToken(idToken string, c echo.Context) error {
 	}
 
 	var identityResponse struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
+		Name    string `json:"name"`
+		Email   string `json:"email"`
+		Picture string `json:"picture"`
 	}
 
 	decoder := json5.NewDecoder(response.Body)
@@ -189,6 +220,7 @@ func verifyIDToken(idToken string, c echo.Context) error {
 	}
 
 	setLoginInfo(c, cookieLogin)
+	setPicture(c, identityResponse.Picture)
 
 	return nil
 }
@@ -203,9 +235,77 @@ func deleteIDToken(c echo.Context) {
 	c.SetCookie(&cookie)
 }
 
+func createOpenIDConnectToken() string {
+	startString := uuid.NewString()
+
+	h := hmac.New(sha256.New, []byte(Config.AuthSecret))
+	h.Write([]byte(startString))
+	stringSig := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	return fmt.Sprintf("%v.%v", startString, stringSig)
+}
+
+func validateOpenIDConnectToken(instring string) bool {
+	parts := strings.SplitN(instring, ".", 2)
+
+	h := hmac.New(sha256.New, []byte(Config.AuthSecret))
+	h.Write([]byte(parts[0]))
+	stringSig := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	return stringSig == parts[1]
+}
+
+func getOpenIDAuthorizationEndpoint() string {
+	// Cache
+	if openIDAuthEndpoint != "" {
+		return openIDAuthEndpoint
+	}
+
+	var authEndpoint struct {
+		AuthorizationEndpoint string `json:"authorization_endpoint"`
+		TokenEndpoint         string `json:"token_endpoint"`
+	}
+
+	response, err := http.Get("https://accounts.google.com/.well-known/openid-configuration")
+
+	if err != nil {
+		panic(err)
+	}
+
+	dec := json5.NewDecoder(response.Body)
+	dec.Decode(&authEndpoint)
+
+	openIDAuthEndpoint = authEndpoint.AuthorizationEndpoint
+
+	return authEndpoint.AuthorizationEndpoint
+}
+
+func generateOpenIDAuthURL() string {
+	authURL := getOpenIDAuthorizationEndpoint()
+
+	urlParts := []string{
+		// client_id, which you obtain from the API Console Credentials page .
+		fmt.Sprintf("client_id=%v", url.QueryEscape(Config.GoogleSite)),
+		// response_type, which in a basic authorization code flow request should be code. (Read more at response_type.)
+		"response_type=code",
+		//scope, which in a basic request should be openid email. (Read more at scope.)
+		"scope=openid%20email%20profile",
+		//redirect_uri should be the HTTP endpoint on your server that will receive the response from Google. The value must exactly match one of the authorized redirect URIs for the OAuth 2.0 client, which you configured in the API Console Credentials page. If this value doesn't match an authorized URI, the request will fail with a redirect_uri_mismatch error.
+		fmt.Sprintf("redirect_uri=%v", url.QueryEscape(Config.AuthCallback)),
+		//state should include the value of the anti-forgery unique session token, as well as any other information needed to recover the context when the user returns to your application, e.g., the starting URL. (Read more at state.)
+		fmt.Sprintf("state=%v", url.QueryEscape(createOpenIDConnectToken())),
+		// nonce is a random value generated by your app that enables replay protection when present.
+		fmt.Sprintf("nonce=%v", url.QueryEscape(createOpenIDConnectToken())),
+	}
+
+	queryString := strings.Join(urlParts, "&")
+
+	return fmt.Sprintf("%v?%v", authURL, queryString)
+}
+
 func loginMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		user, _ := getLoginInfo(c)
+		user, picture, _ := getLoginInfo(c)
 		c.Set("login", user)
 
 		if user != nil {
@@ -214,9 +314,11 @@ func loginMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			} else {
 				c.Set("user_name", user.Name)
 			}
+			c.Set("picture", picture)
 			c.Set("logged_in", true)
 		} else {
 			c.Set("user_name", "")
+			c.Set("picture", "")
 			c.Set("logged_in", false)
 		}
 

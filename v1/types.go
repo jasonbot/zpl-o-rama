@@ -8,6 +8,8 @@ const (
 // ConfStruct is the configuration for the services
 type ConfStruct struct {
 	GoogleSite        string   `json:"google_site"`
+	AppSecret         string   `json:"app_secret"`
+	AuthCallback      string   `json:"auth_callback"`
 	FrontendPort      int      `json:"frontend_port"`
 	PrintserviceHost  string   `json:"printservice_host"`
 	PrintservicePort  int      `json:"printservice_port"`
@@ -86,4 +88,14 @@ type hotwireResponse struct {
 
 type errJSON struct {
 	Errmsg string `json:"error"`
+}
+
+type openIDResponseIDToken struct {
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+}
+
+type openIDResponseToken struct {
+	IDtoken openIDResponseIDToken `json:"id_token"`
 }
