@@ -10,6 +10,7 @@
             <img src="{{ .Picture }}" class="profilepicture" alt="your face" />
         {{end}}
         {{ html .User }}
+        <span class="topemail">{{ html .Email }}</span>
         <a href="#" id="signout" onclick="signOut();">Sign out</a>
     {{else}}
         Not signed in

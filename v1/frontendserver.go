@@ -64,14 +64,17 @@ func doLogin(c echo.Context) error {
 
 	if err == nil {
 		userName := c.Get("user_name").(string)
+		email := c.Get("email").(string)
 		picture := c.Get("picture").(string)
 
 		html := renderTemplateString("loginbar",
 			struct {
 				User    string
+				Email   string
 				Picture string
 			}{
 				User:    userName,
+				Email:   email,
 				Picture: picture,
 			})
 		return c.JSON(http.StatusOK, &hotwireResponse{
@@ -170,10 +173,12 @@ func doSignInCallback(c echo.Context) error {
 func homePage(c echo.Context) error {
 	var body string
 	var userName string
+	var email string
 	var picture string
 
 	if c.Get("logged_in").(bool) == true {
 		userName = c.Get("user_name").(string)
+		email = c.Get("email").(string)
 		picture = c.Get("picture").(string)
 		body = renderTemplateString("input-zpl-form", nil)
 	} else {
@@ -183,13 +188,15 @@ func homePage(c echo.Context) error {
 	return c.Render(http.StatusOK, "main", struct {
 		Title   string
 		User    string
-		Body    string
+		Email   string
 		Picture string
+		Body    string
 	}{
 		Title:   "ZPL-O-Rama: Home",
 		User:    userName,
-		Body:    body,
+		Email:   email,
 		Picture: picture,
+		Body:    body,
 	})
 }
 
@@ -270,10 +277,11 @@ func displayJob(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
 	}
 
-	var userName, picture string
+	var userName, email, picture string
 
 	if c.Get("logged_in").(bool) == true {
 		userName = c.Get("user_name").(string)
+		email = c.Get("email").(string)
 		picture = c.Get("picture").(string)
 	}
 
@@ -288,14 +296,40 @@ func displayJob(c echo.Context) error {
 	return c.Render(http.StatusOK, "main", struct {
 		Title   string
 		User    string
-		Body    string
+		Email   string
 		Picture string
+		Body    string
 	}{
 		Title:   "ZPL-O-Rama: Print Job",
 		User:    userName,
-		Body:    body,
+		Email:   email,
 		Picture: picture,
+		Body:    body,
 	})
+}
+
+func displayJobJSON(c echo.Context) error {
+	job, err := fetchJobCall(c.Param("id"))
+
+	if err != nil {
+		return c.JSON(http.StatusNotFound, errJSON{Errmsg: err.Error()})
+	}
+
+	if job.ImageB64Small == "" {
+		job.ImageB64Small, err = shrinkImage(job.ImageB64)
+	}
+
+	if err != nil {
+		return c.JSON(http.StatusFailedDependency, errJSON{Errmsg: err.Error()})
+	}
+
+	if job.Done {
+		c.Response().Header().Set("Cache-Control", "max-age=31536000")
+	} else {
+		c.Response().Header().Set("Cache-Control", "max-age=0")
+	}
+
+	return c.JSON(http.StatusOK, job)
 }
 
 func displaySmallJobImage(c echo.Context) error {
@@ -308,7 +342,7 @@ func displaySmallJobImage(c echo.Context) error {
 	}
 
 	if err != nil {
-		return c.JSON(http.StatusExpectationFailed, errJSON{Errmsg: err.Error()})
+		return c.JSON(http.StatusNotFound, errJSON{Errmsg: err.Error()})
 	}
 
 	if job.Done {
@@ -406,6 +440,7 @@ func RunFrontendServer(port int, apiendpoint string) {
 	e.GET("/home", homePage, loginMiddleware)
 	e.POST("/print", printMedia, loginMiddleware)
 	e.GET("/job/:id", displayJob, loginMiddleware, middleware.Gzip())
+	e.GET("/job/:id/job.json", displayJobJSON, middleware.Gzip())
 	e.GET("/job/:id/image.png", displaySmallJobImage, middleware.Gzip())
 	e.GET("/job/:id/original.png", displayJobImage, middleware.Gzip())
 	e.GET("/job/:id/partial", displayJobPartial, middleware.Gzip())

@@ -14,7 +14,7 @@ func main() {
 
 	flag.StringVar(&printerServiceHost, "servicehost", zplorama.Config.PrintserviceHost, "Address to bind to")
 	flag.IntVar(&listenport, "listenport", 5491, "the port to listen on (bound to 127.0.0.1)")
-	flag.StringVar(&printerDialAddress, "printeraddress", "192.168.1.1:9100", "Address of the Zebra printer on the network")
+	flag.StringVar(&printerDialAddress, "printeraddress", zplorama.Config.PrintDial, "Address of the Zebra printer on the network")
 	flag.StringVar(&configFile, "configfile", "", "Path to config.json")
 	flag.Parse()
 

@@ -81,6 +81,10 @@ a:visited {
   color: var(--ocean-50);
 }
 
+.topemail {
+  color: var(--ocean-80);
+}
+
 #mainsection {
   padding: 0.25em;
 }

@@ -14,6 +14,7 @@ type ConfStruct struct {
 	PrintserviceHost  string   `json:"printservice_host"`
 	PrintservicePort  int      `json:"printservice_port"`
 	PrintTime         string   `json:"print_time"`
+	PrintDial         string   `json:"print_dial"`
 	AuthtokenLifetime string   `json:"authtoken_lifetime"`
 	AuthSecret        string   `json:"authsecret"`
 	AllowedLogins     []string `json:"allowed_logins"`

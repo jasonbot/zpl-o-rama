@@ -310,11 +310,13 @@ func loginMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Set("login", user)
 
 		if user != nil {
-			c.Set("user_name", user.String())
+			c.Set("user_name", user.Name)
+			c.Set("email", user.Address)
 			c.Set("picture", picture)
 			c.Set("logged_in", true)
 		} else {
 			c.Set("user_name", "")
+			c.Set("email", "")
 			c.Set("picture", "")
 			c.Set("logged_in", false)
 		}
