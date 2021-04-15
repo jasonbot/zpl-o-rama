@@ -18,6 +18,17 @@ import (
 	"github.com/labstack/echo"
 )
 
+const resetCommand string = `^XA
+^FWN
+^LL1218
+^PW812
+^PON
+^LH0,0
+^LT0
+^CI28
+^XZ
+`
+
 func startJob(db *bolt.DB, jobID string) {
 	jobRecord := jobTimestamp{
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -80,6 +91,11 @@ func handleJobs(jobCache chan *printJobRequest, db *bolt.DB, printerAddress stri
 		var err error
 
 		if status.ZPL != "" {
+			err = sendZPL(printerAddress, resetCommand)
+			if err != nil {
+				return err
+			}
+
 			err = sendZPL(printerAddress, status.ZPL)
 
 			if err == nil {
